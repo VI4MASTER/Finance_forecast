@@ -1,20 +1,36 @@
 from django.db import models
 
-class Budget(models.Model):
-    name = models.CharField(max_length=255)  # Назва бюджету
-    code = models.CharField(max_length=50, unique=True)  # Унікальний код бюджетуpython manage.py
-
-    def __str__(self):
-        return self.name
-
-class Transaction(models.Model):
-    budget = models.ForeignKey(Budget, on_delete=models.CASCADE)  # Зв’язок із бюджетом
-    date = models.DateField()  # Дата транзакції
-    amount = models.DecimalField(max_digits=15, decimal_places=2)  # Сума
-    transaction_type = models.CharField(
+class Budgets(models.Model):
+    name_local_gov = models.CharField(
+        max_length=2000,
+        primary_key=True,
+        verbose_name="Найменування органу місцевого самоврядування"
+    )
+    code_region = models.CharField(
+        max_length=2,
+        verbose_name="Код території"
+    )
+    name_budg = models.CharField(
+        max_length=2000,
+        verbose_name="Найменування бюджету"
+    )
+    koatuu = models.CharField(
         max_length=10,
-        choices=[('income', 'Дохід'), ('expense', 'Видаток')]  # Тип: дохід чи видаток
+        verbose_name="КОАТУУ"
+    )
+    code_budg = models.CharField(
+        max_length=11,
+        unique=True,
+        verbose_name="Код бюджету"
+    )
+    sign_budg = models.CharField(
+        max_length=16,
+        verbose_name="Ознака бюджету"
     )
 
     def __str__(self):
-        return f"{self.transaction_type} {self.amount} для {self.budget} від {self.date}"
+        return self.name_budg
+
+    class Meta:
+        verbose_name = "Бюджет"
+        verbose_name_plural = "Бюджети"
