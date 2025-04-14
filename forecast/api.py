@@ -1,4 +1,4 @@
-import requests
+import requests, pandas, io
 from datetime import date
 
 BASE_URL = "https://api.openbudget.gov.ua/"
@@ -40,8 +40,17 @@ def fetch_budget_incomes_data(budget_code, year, period="MONTH", budget_item="IN
         timeout=30
     )
     if response.status_code == 200:
-        # Парсимо CSV у список словників
-        df = pandas.read_csv(pandas.io.common.StringIO(response.text), sep=',')
+        text = response.content.decode('latin1')
+        df = pandas.read_csv(
+            io.StringIO(text),
+            sep=';',
+            encoding='utf-8'
+        )
+        # Виправляємо текст у NAME_INC
+        df['NAME_INC'] = df['NAME_INC'].apply(
+            lambda x: x.encode('latin1').decode('utf-8') if isinstance(x, str) else x
+        )
+        df = df.where(df.notnull(), None)
         return df.to_dict('records')
     else:
         raise Exception(f"Помилка при отриманні даних із {BASE_URL}api/public/localBudgetData: "

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Дохід бюджетів</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .form-container { margin-bottom: 20px; }
+        .form-container label { display: inline-block; width: 150px; }
+        .form-container select, .form-container input { margin-bottom: 10px; padding: 5px; }
+        .error { color: red; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Дохід бюджетів</h1>
+    <div class="form-container">
+        <form method="post">
+            {% csrf_token %}
+            <div>
+                <label for="{{ form.region.id_for_label }}">Регіон:</label>
+                {{ form.region }}
+            </div>
+            <div>
+                <label for="{{ form.budget.id_for_label }}">Бюджет:</label>
+                {{ form.budget }}
+            </div>
+            <div>
+                <label for="{{ form.year.id_for_label }}">Рік:</label>
+                {{ form.year }}
+            </div>
+            <div>
+                <label for="{{ form.period.id_for_label }}">Період:</label>
+                {{ form.period }}
+            </div>
+            <button type="submit">Отримати дані</button>
+        </form>
+    </div>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if results %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Період</th>
+                    <th>Тип фонду</th>
+                    <th>Код бюджету</th>
+                    <th>Код доходу</th>
+                    <th>Назва доходу</th>
+                    <th>Затверджена сума</th>
+                    <th>Планована сума</th>
+                    <th>Фактична сума</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in results %}
+                    <tr>
+                        <td>
+                            {% if row.REP_PERIOD %}
+                                {% with period=row.REP_PERIOD|stringformat:"s" %}
+                                    {% if period|slice:":2" == "1." %}
+                                        Січень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "2." %}
+                                        Лютий {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "3." %}
+                                        Березень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "4." %}
+                                        Квітень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "5." %}
+                                        Травень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "6." %}
+                                        Червень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "7." %}
+                                        Липень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "8." %}
+                                        Серпень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":2" == "9." %}
+                                        Вересень {{ period|slice:"2:" }}
+                                    {% elif period|slice:":3" == "10." %}
+                                        Жовтень {{ period|slice:"3:" }}
+                                    {% elif period|slice:":3" == "11." %}
+                                        Листопад {{ period|slice:"3:" }}
+                                    {% elif period|slice:":3" == "12." %}
+                                        Грудень {{ period|slice:"3:" }}
+                                    {% else %}
+                                        {{ period }}
+                                    {% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </td>
+                        <td>{{ row.FUND_TYP }}</td>
+                        <td>{{ row.COD_BUDGET }}</td>
+                        <td>{{ row.COD_INCO }}</td>
+                        <td>{{ row.NAME_INC }}</td>
+                        <td>{{ row.ZAT_AMT|floatformat:2 }}</td>
+                        <td>{{ row.PLANS_AMT|floatformat:2|default:"—" }}</td>
+                        <td>{{ row.FAKT_AMT|floatformat:2 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <script>
+        document.getElementById('id_region').addEventListener('change', function() {
+            var regionCode = this.value;
+            var budgetSelect = document.getElementById('id_budget');
+
+            // Очищаємо поточний список бюджетів
+            budgetSelect.innerHTML = '<option value="">Оберіть бюджет</option>';
+
+            if (regionCode) {
+                // AJAX-запит для отримання бюджетів
+                fetch('/get_budgets_by_region/?region_code=' + regionCode)
+                    .then(response => response.json())
+                    .then(data => {
+                        data.budgets.forEach(budget => {
+                            var option = document.createElement('option');
+                            option.value = budget.code_budg;
+                            option.text = budget.name_budg;
+                            budgetSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Помилка:', error));
+            }
+        });
+    </script>
+</body>
+</html>
