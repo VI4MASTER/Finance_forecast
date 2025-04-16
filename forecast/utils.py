@@ -1,10 +1,10 @@
 import time
-from forecast.models import Budgets, Regions
+from forecast.models import Budgets, Regions, Incomes
 from django.db import transaction
 
 def load_budgets_dict(data):
     start_time = time.time()
-    print("Початок обробки...")
+    print("Початок обробки словника бюджетів...")
 
     # Визначаємо допустимі значення для signBudg
     valid_sign_budg = {'gm', 'gs', 'gss'}#gm, gs, gss
@@ -34,18 +34,18 @@ def load_budgets_dict(data):
 
     # Зберігаємо у базу одним запитом
     with transaction.atomic():
-        Budgets.objects.all().delete()
-        Budgets.objects.bulk_create(objects, ignore_conflicts=True)
+        Budgets.objects.all().delete() #Очищаємо довідник перед заповненням новими даними
+        Budgets.objects.bulk_create(objects, ignore_conflicts=False)
         recorded = Budgets.objects.count()
 
     elapsed = time.time() - start_time
-    print(f"Записано в базу: {recorded}")
+    print(f"Записано в базу: {recorded} бюджетів")
     print(f"Завантажено {total} бюджетів за {elapsed:.2f} секунд")
 
 
 def load_regions_dict(data):
     start_time = time.time()
-    print("Початок обробки регіонів...")
+    print("Початок обробки довідника областей...")
 
     print(f"Знайдено {len(data)} записів")
 
@@ -65,5 +65,38 @@ def load_regions_dict(data):
         recorded = Regions.objects.count()
 
     elapsed = time.time() - start_time
-    print(f"Записано регіонів: {recorded}")
-    print(f"Завантажено {recorded} регіонів за {elapsed:.2f} секунд")
+    print(f"Записано областей: {recorded}")
+    print(f"Завантажено {recorded} областей за {elapsed:.2f} секунд")
+
+
+def load_incomes_dict(data):
+    start_time = time.time()
+    print("Початок обробки словника кодів доходів...")
+
+    # Фільтруємо записи
+    filtered_incomes = [
+        budget_data for budget_data in data
+        if budget_data.get('details') == 1  # Фільтр по ознака "1" - детальний код ("0" для групуючих)
+    ]
+
+    total = len(filtered_incomes)
+    print(f"Знайдено {len(data)} записів, відфільтровано до {total}")
+
+    # Створюємо об'єкти для bulk_create
+    objects = [
+        Incomes(
+            kdb_code=budget_data['code'],
+            kdb_name=budget_data['name'],
+        )
+        for budget_data in filtered_incomes
+    ]
+
+    # Зберігаємо у базу одним запитом
+    with transaction.atomic():
+        Incomes.objects.all().delete() #Очищаємо довідник перед заповненням новими даними
+        Incomes.objects.bulk_create(objects, ignore_conflicts=False)
+        recorded = Incomes.objects.count()
+
+    elapsed = time.time() - start_time
+    print(f"Записано в базу: {recorded} кодів доходів")
+    print(f"Завантажено {total} кодів доходів за {elapsed:.2f} секунд")

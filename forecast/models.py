@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Budgets(models.Model):
     name_local_gov = models.CharField(
         max_length=2000,
@@ -54,6 +55,18 @@ class Regions(models.Model):
     class Meta:
         verbose_name = "Області"
         verbose_name_plural = "Області"
+
+class Incomes(models.Model):
+    kdb_code = models.CharField(
+        max_length=8,
+        primary_key=True,
+        verbose_name="Код класифікації доходів бюджету"
+    )
+    kdb_name = models.CharField(
+        max_length=2000,
+        verbose_name="Найменування доходів бюджету"
+    )
+
 
 class IncomeHistory(models.Model):
     budget = models.ForeignKey(Budgets, on_delete=models.CASCADE, to_field='code_budg')

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 BASE_URL = "https://api.openbudget.gov.ua/"
 
 
-def fetch_dict_data():
+def fetch_budget_dict_data():
     budgets_response = requests.get(
         f"{BASE_URL}items/BUDG",
         params={"dateFrom": date.today().strftime('%Y-%m-%d')},
@@ -22,15 +22,28 @@ def fetch_dict_data():
         raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
 
 
-def fetch_regions_data():
+def fetch_region_dict_data():
     regions_response = requests.get(
-        f"{BASE_URL}items/REGIONS",
+        f"{BASE_URL}items/CODEREGION",
+        params={"dateFrom": date.today().strftime('%Y-%m-%d')},
         timeout=30
     )
     if regions_response.status_code == 200:
         return regions_response.json()
     else:
         raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/REGIONS: {regions_response.status_code}")
+
+
+def fetch_incomes_dict_data():
+    incomes_response = requests.get(
+        f"{BASE_URL}items/KDB",
+        params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+        timeout=30
+    )
+    if incomes_response.status_code == 200:
+        return incomes_response.json()
+    else:
+        raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {incomes_response.status_code}")
 
 
 def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="INCOMES"):
