@@ -8,17 +8,42 @@
         .form-container { margin-bottom: 20px; }
         .form-container label { display: inline-block; width: 150px; vertical-align: top; }
         .form-container select, .form-container input { margin-bottom: 10px; padding: 5px; width: 300px; }
-        .form-container .checkboxes { margin-bottom: 10px; }
-        .form-container .checkboxes label { width: auto; margin-right: 10px; }
         .error { color: red; }
+        .success { color: green; margin-bottom: 10px; }
+        .data-status { color: #333; margin-bottom: 10px; }
+        .missing-data { color: orange; margin-bottom: 10px; }
         table { border-collapse: collapse; width: 100%; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         .button-container { margin-top: 10px; }
+        .number { text-align: right; }
+        .forecast-button { margin-top: 20px; }
+        .forecast-button a {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .forecast-button a:hover { background-color: #0056b3; }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Форматування чисел із роздільниками розрядів
+            const numberCells = document.querySelectorAll('.number');
+            numberCells.forEach(cell => {
+                let value = parseFloat(cell.textContent.replace(/,/g, ''));
+                if (!isNaN(value)) {
+                    cell.textContent = value.toLocaleString('uk-UA', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            });
+
+            // Оновлення бюджету при зміні регіону
             const regionSelect = document.querySelector('#id_region');
             const budgetSelect = document.querySelector('#id_budget');
 
@@ -57,23 +82,59 @@
                 {{ form.budget }}
             </div>
             <div>
-                <label for="{{ form.years.id_for_label }}">Роки:</label>
-                <div class="checkboxes">
-                    {{ form.years }}
-                </div>
-            </div>
-            <div>
                 <label for="{{ form.period.id_for_label }}">Період:</label>
                 {{ form.period }}
             </div>
             <div class="button-container">
-                <button type="submit" name="fetch_data">Отримати дані</button>
-                {% if results %}
-                    <button type="submit" name="save_to_db" value="true">Зберегти в базу</button>
-                {% endif %}
+                <button type="submit" name="fetch_data">Отримати дані по бюджету</button>
             </div>
         </form>
     </div>
+
+    {% if success_api %}
+        <p class="success">Дані успішно отримані з API.</p>
+    {% endif %}
+    {% if success_db %}
+        <p class="success">Дані успішно збережені в базу даних.</p>
+    {% endif %}
+
+    {% if available_data %}
+        <div class="data-status">
+            <strong>Наявність даних у базі:</strong>
+            <ul>
+                {% for year, months in available_data.items %}
+                    <li>
+                        {{ year }}:
+                        {% if months %}
+                            Дані за місяці: {{ months|join:", " }}
+                            {% if year == current_year and last_year_month < current_month %}
+                                (останні дані за {{ last_year_month }} місяць)
+                            {% endif %}
+                        {% else %}
+                            Дані відсутні
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% if show_load_button %}
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="region" value="{{ form.region.value }}">
+                <input type="hidden" name="budget" value="{{ form.budget.value }}">
+                <input type="hidden" name="period" value="{{ form.period.value }}">
+                <div class="missing-data">
+                    {% if missing_years %}
+                        Відсутні дані за роки: {{ missing_years|join:", " }}.
+                    {% endif %}
+                    {% if last_year_month and last_year_month < current_month %}
+                        Відсутні дані за місяці {{ last_year_month|add:1 }}–{{ current_month }} для {{ current_year }}.
+                    {% endif %}
+                    <button type="submit" name="load_missing" value="true">Завантажити відсутні дані</button>
+                </div>
+            </form>
+        {% endif %}
+    {% endif %}
 
     {% if error %}
         <p class="error">{{ error }}</p>
@@ -110,22 +171,27 @@
                             {% else %}{{ row.fund_typ }}{% endif %}
                         </td>
                         <td>{{ row.year }}</td>
-                        <td>{{ row.01|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.02|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.03|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.04|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.05|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.06|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.07|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.08|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.09|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.10|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.11|floatformat:0|default:"—" }}</td>
-                        <td>{{ row.12|floatformat:0|default:"—" }}</td>
+                        <td class="number">{{ row.01|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.02|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.03|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.04|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.05|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.06|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.07|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.08|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.09|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.10|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.11|floatformat:2|default:"—" }}</td>
+                        <td class="number">{{ row.12|floatformat:2|default:"—" }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% if form.budget.value %}
+            <div class="forecast-button">
+                <a href="{% url 'forecast' %}?budget_code={{ form.budget.value }}">Перейти до прогнозування</a>
+            </div>
+        {% endif %}
     {% endif %}
 </body>
 </html>

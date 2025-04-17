@@ -4,47 +4,58 @@ import io
 import logging
 from datetime import date
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.openbudget.gov.ua/"
 
-
 def fetch_budget_dict_data():
-    budgets_response = requests.get(
-        f"{BASE_URL}items/BUDG",
-        params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-        timeout=30
-    )
-    if budgets_response.status_code == 200:
-        return budgets_response.json()
-    else:
-        raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
-
+    try:
+        budgets_response = requests.get(
+            f"{BASE_URL}items/BUDG",
+            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+            timeout=30
+        )
+        if budgets_response.status_code == 200:
+            return budgets_response.json()
+        else:
+            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
+            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
+    except Exception as e:
+        logger.error(f"Загальна помилка при отриманні даних бюджетів: {e}")
+        raise
 
 def fetch_region_dict_data():
-    regions_response = requests.get(
-        f"{BASE_URL}items/CODEREGION",
-        params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-        timeout=30
-    )
-    if regions_response.status_code == 200:
-        return regions_response.json()
-    else:
-        raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/REGIONS: {regions_response.status_code}")
-
+    try:
+        regions_response = requests.get(
+            f"{BASE_URL}items/CODEREGION",
+            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+            timeout=30
+        )
+        if regions_response.status_code == 200:
+            return regions_response.json()
+        else:
+            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {regions_response.status_code}")
+            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {regions_response.status_code}")
+    except Exception as e:
+        logger.error(f"Загальна помилка при отриманні даних регіонів: {e}")
+        raise
 
 def fetch_incomes_dict_data():
-    incomes_response = requests.get(
-        f"{BASE_URL}items/KDB",
-        params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-        timeout=30
-    )
-    if incomes_response.status_code == 200:
-        return incomes_response.json()
-    else:
-        raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {incomes_response.status_code}")
-
+    try:
+        incomes_response = requests.get(
+            f"{BASE_URL}items/KDB",
+            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+            timeout=30
+        )
+        if incomes_response.status_code == 200:
+            return incomes_response.json()
+        else:
+            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {incomes_response.status_code}")
+            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {incomes_response.status_code}")
+    except Exception as e:
+        logger.error(f"Загальна помилка при отриманні даних доходів: {e}")
+        raise
 
 def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="INCOMES"):
     all_results = []
@@ -66,8 +77,6 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                 timeout=30
             )
             if response.status_code == 200:
-                logger.debug(f"Сира відповідь API для року {year}:\n{response.text[:1000]}...")
-
                 try:
                     df = pandas.read_csv(
                         io.StringIO(response.text),
@@ -76,9 +85,7 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                         dtype_backend="numpy_nullable",
                         on_bad_lines='skip'
                     )
-                    logger.debug(f"Успішно використано utf-8 із sep=';' для року {year}")
-                except Exception as parse_error:
-                    logger.error(f"Помилка utf-8 із sep=';' для року {year}: {parse_error}")
+                except Exception:
                     try:
                         df = pandas.read_csv(
                             io.StringIO(response.text),
@@ -87,9 +94,8 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                             dtype_backend="numpy_nullable",
                             on_bad_lines='skip'
                         )
-                        logger.debug(f"Успішно використано cp1251 із sep=';' для року {year}")
-                    except Exception as parse_error2:
-                        logger.error(f"Помилка cp1251 із sep=';' для року {year}: {parse_error2}")
+                    except Exception as e:
+                        logger.error(f"Помилка парсингу CSV для року {year}: {e}")
                         continue
 
                 # Перейменовуємо стовпці в нижній регістр
@@ -107,6 +113,14 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                         lambda x: f"{int(x.split('.')[0]):02d}.{int(x.split('.')[1])}" if isinstance(x, str) and '.' in x else f"{int(x):02d}.{int(year)}"
                     )
 
+                # Фільтруємо записи, виключаючи коди доходів, що починаються з '4' або '5'
+                if 'cod_inco' in df.columns:
+                    df = df[~df['cod_inco'].astype(str).str.startswith(('4', '5'))]
+
+                # Фільтруємо записи, залишаючи лише fund_typ у ['C', 'S']
+                if 'fund_typ' in df.columns:
+                    df = df[df['fund_typ'].isin(['C', 'S'])]
+
                 # Вибираємо потрібні стовпці (без cod_budget)
                 columns = ['rep_period', 'fund_typ', 'cod_inco', 'zat_amt', 'fakt_amt']
                 df = df[[col for col in columns if col in df.columns]]
@@ -118,8 +132,7 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                         df[col] = pandas.to_numeric(df[col], errors='coerce')
 
                 if not df.empty:
-                    logger.debug(f"Перший рядок після парсингу для року {year}:\n{df.iloc[0].to_dict()}")
-                all_results.extend(df.to_dict('records'))
+                    all_results.extend(df.to_dict('records'))
             else:
                 logger.error(f"Помилка API для року {year}: {response.status_code}")
         except Exception as e:

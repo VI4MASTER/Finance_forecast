@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Прогнозування доходів</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .budget-info { margin-bottom: 20px; }
+        .budget-info h2 { margin: 0 0 10px; }
+        .budget-info p { margin: 5px 0; }
+        .income-select-container { margin-bottom: 20px; }
+        .income-select-container label { display: inline-block; width: 150px; }
+        .income-select-container select { padding: 5px; width: 500px; }
+        .error { color: red; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Прогнозування доходів</h1>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% else %}
+        <div class="budget-info">
+            <h2>Бюджет: {{ budget.name_budg }} (Код: {{ budget.code_budg }})</h2>
+            <p><strong>Період наявних даних:</strong></p>
+            <ul>
+                {% for year, months in available_data.items %}
+                    <li>
+                        {{ year }}:
+                        {% if months %}
+                            місяці {{ months|join:", " }}
+                            {% if year == current_year and last_year_month < current_month %}
+                                (останні дані за {{ last_year_month }} місяць)
+                            {% endif %}
+                        {% else %}
+                            дані відсутні
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="income-select-container">
+            <label for="income_code">Код доходу:</label>
+            <select id="income_code" name="income_code">
+                <option value="">Оберіть код доходу</option>
+                {% for income in incomes %}
+                    <option value="{{ income.kdb_code }}">{{ income.kdb_code }} - {{ income.kdb_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    {% endif %}
+
+    <p><a href="{% url 'budget_incomes' %}">Повернутися до доходів бюджетів</a></p>
+</body>
+</html>

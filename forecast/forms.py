@@ -16,12 +16,6 @@ class BudgetQueryForm(forms.Form):
         to_field_name="code_budg",
         required=True
     )
-    years = forms.MultipleChoiceField(
-        choices=[(year, year) for year in range(2018, 2026)],
-        label="Роки",
-        initial=[2023],
-        widget=forms.CheckboxSelectMultiple
-    )
     period = forms.ChoiceField(
         choices=[
             ('MONTH', 'По місяцях'),
