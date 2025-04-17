@@ -96,7 +96,6 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                 df = df.rename(columns={
                     'REP_PERIOD': 'rep_period',
                     'FUND_TYP': 'fund_typ',
-                    'COD_BUDGET': 'cod_budget',
                     'COD_INCO': 'cod_inco',
                     'ZAT_AMT': 'zat_amt',
                     'FAKT_AMT': 'fakt_amt'
@@ -105,12 +104,11 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                 # Нормалізуємо rep_period до формату MM.YYYY
                 if 'rep_period' in df.columns:
                     df['rep_period'] = df['rep_period'].apply(
-                        lambda x: f"{int(x.split('.')[0]):02d}.{int(x.split('.')[1])}" if isinstance(x,
-                                                                                                     str) and '.' in x else f"{int(x):02d}.{int(year)}"
+                        lambda x: f"{int(x.split('.')[0]):02d}.{int(x.split('.')[1])}" if isinstance(x, str) and '.' in x else f"{int(x):02d}.{int(year)}"
                     )
 
-                # Вибираємо потрібні стовпці
-                columns = ['rep_period', 'fund_typ', 'cod_budget', 'cod_inco', 'zat_amt', 'fakt_amt']
+                # Вибираємо потрібні стовпці (без cod_budget)
+                columns = ['rep_period', 'fund_typ', 'cod_inco', 'zat_amt', 'fakt_amt']
                 df = df[[col for col in columns if col in df.columns]]
 
                 # Перетворюємо числові стовпці

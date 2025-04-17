@@ -83,7 +83,6 @@
         <table>
             <thead>
                 <tr>
-                    <th>Код бюджету</th>
                     <th>Код доходу</th>
                     <th>Тип фонду</th>
                     <th>Рік</th>
@@ -104,27 +103,25 @@
             <tbody>
                 {% for row in results|dictsort:"year"|dictsort:"cod_inco" %}
                     <tr>
-                        <td>{{ row.cod_budget }}</td>
                         <td>{{ row.cod_inco }}</td>
                         <td>
-                            {% if row.fund_typ == 'T' %}Разом
-                            {% elif row.fund_typ == 'C' %}Загальний
+                            {% if row.fund_typ == 'C' %}Загальний
                             {% elif row.fund_typ == 'S' %}Спеціальний
                             {% else %}{{ row.fund_typ }}{% endif %}
                         </td>
                         <td>{{ row.year }}</td>
-                        <td>{{ row.01|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.02|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.03|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.04|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.05|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.06|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.07|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.08|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.09|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.10|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.11|floatformat:2|default:"—" }}</td>
-                        <td>{{ row.12|floatformat:2|default:"—" }}</td>
+                        <td>{{ row.01|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.02|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.03|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.04|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.05|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.06|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.07|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.08|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.09|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.10|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.11|floatformat:0|default:"—" }}</td>
+                        <td>{{ row.12|floatformat:0|default:"—" }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

@@ -4,7 +4,7 @@ from .models import Budgets, Regions
 class BudgetQueryForm(forms.Form):
     region = forms.ModelChoiceField(
         queryset=Regions.objects.all().order_by('name'),
-        label="Регіон",
+        label="Область",
         empty_label="Оберіть регіон",
         to_field_name="code_region",
         required=True
