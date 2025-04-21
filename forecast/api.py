@@ -103,7 +103,6 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                     'REP_PERIOD': 'rep_period',
                     'FUND_TYP': 'fund_typ',
                     'COD_INCO': 'cod_inco',
-                    'ZAT_AMT': 'zat_amt',
                     'FAKT_AMT': 'fakt_amt'
                 })
 
@@ -121,15 +120,22 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
                 if 'fund_typ' in df.columns:
                     df = df[df['fund_typ'].isin(['C', 'S'])]
 
-                # Вибираємо потрібні стовпці (без cod_budget)
-                columns = ['rep_period', 'fund_typ', 'cod_inco', 'zat_amt', 'fakt_amt']
+                # Вибираємо потрібні стовпці
+                columns = ['rep_period', 'fund_typ', 'cod_inco', 'fakt_amt']
                 df = df[[col for col in columns if col in df.columns]]
 
                 # Перетворюємо числові стовпці
-                numeric_columns = ['zat_amt', 'fakt_amt']
-                for col in numeric_columns:
-                    if col in df.columns:
-                        df[col] = pandas.to_numeric(df[col], errors='coerce')
+                if 'fakt_amt' in df.columns:
+                    df['fakt_amt'] = pandas.to_numeric(df['fakt_amt'], errors='coerce')
+
+                # Обчислюємо помісячні різниці для fakt_amt
+                if 'fakt_amt' in df.columns and not df.empty:
+                    df['year'] = df['rep_period'].str.split('.').str[1]
+                    df['month'] = df['rep_period'].str.split('.').str[0].astype(int)
+                    df = df.sort_values(by=['year', 'cod_inco', 'fund_typ', 'month'])
+                    df['fakt_amt_diff'] = df.groupby(['year', 'cod_inco', 'fund_typ'])['fakt_amt'].diff().fillna(df['fakt_amt'])
+                    df['fakt_amt'] = df['fakt_amt_diff']
+                    df = df.drop(columns=['fakt_amt_diff', 'year', 'month'])
 
                 if not df.empty:
                     all_results.extend(df.to_dict('records'))
@@ -138,4 +144,5 @@ def fetch_budget_incomes_data(budget_code, years, period="MONTH", budget_item="I
         except Exception as e:
             logger.error(f"Загальна помилка для року {year}: {e}")
 
+    logger.info(f"Отримано {len(all_results)} записів для бюджету {budget_code}")
     return all_results

@@ -8,11 +8,180 @@
         .budget-info { margin-bottom: 20px; }
         .budget-info h2 { margin: 0 0 10px; }
         .budget-info p { margin: 5px 0; }
-        .income-select-container { margin-bottom: 20px; }
-        .income-select-container label { display: inline-block; width: 150px; }
+        .income-select-container, .forecast-params { margin-bottom: 20px; }
+        .income-select-container label, .forecast-params label { display: inline-block; width: 150px; }
         .income-select-container select { padding: 5px; width: 500px; }
+        .forecast-params input, .forecast-params select { margin-right: 10px; }
         .error { color: red; margin-bottom: 10px; }
+        .income-data-table, .forecast-results { margin-top: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .number { text-align: right; }
+        .forecast-button { margin: 10px 0; }
+        .forecast-button button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .forecast-button button:hover { background-color: #0056b3; }
     </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const incomeSelect = document.querySelector('#income_code');
+            const tableContainer = document.querySelector('#income_data_table');
+            const forecastButton = document.querySelector('#forecast_button');
+            const forecastResults = document.querySelector('#forecast_results');
+            const budgetCode = new URLSearchParams(window.location.search).get('budget_code');
+
+            incomeSelect.addEventListener('change', function() {
+                const incomeCode = this.value;
+                tableContainer.innerHTML = '';
+                forecastResults.innerHTML = '';
+
+                if (!incomeCode) return;
+
+                fetch(`/get_income_data/?budget_code=${budgetCode}&income_code=${incomeCode}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            tableContainer.innerHTML = `<p class="error">${data.error}</p>`;
+                            return;
+                        }
+
+                        let table = `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Рік</th>
+                                        <th>Тип фонду</th>
+                                        <th>01</th>
+                                        <th>02</th>
+                                        <th>03</th>
+                                        <th>04</th>
+                                        <th>05</th>
+                                        <th>06</th>
+                                        <th>07</th>
+                                        <th>08</th>
+                                        <th>09</th>
+                                        <th>10</th>
+                                        <th>11</th>
+                                        <th>12</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+                        data.data.forEach(row => {
+                            const fundType = row.fund_typ === 'C' ? 'Загальний' :
+                                            row.fund_typ === 'S' ? 'Спеціальний' : row.fund_typ;
+                            table += `
+                                <tr>
+                                    <td>${row.year}</td>
+                                    <td>${fundType}</td>
+                                    <td class="number">${formatNumber(row['01'])}</td>
+                                    <td class="number">${formatNumber(row['02'])}</td>
+                                    <td class="number">${formatNumber(row['03'])}</td>
+                                    <td class="number">${formatNumber(row['04'])}</td>
+                                    <td class="number">${formatNumber(row['05'])}</td>
+                                    <td class="number">${formatNumber(row['06'])}</td>
+                                    <td class="number">${formatNumber(row['07'])}</td>
+                                    <td class="number">${formatNumber(row['08'])}</td>
+                                    <td class="number">${formatNumber(row['09'])}</td>
+                                    <td class="number">${formatNumber(row['10'])}</td>
+                                    <td class="number">${formatNumber(row['11'])}</td>
+                                    <td class="number">${formatNumber(row['12'])}</td>
+                                </tr>
+                            `;
+                        });
+
+                        table += '</tbody></table>';
+                        tableContainer.innerHTML = table;
+                    })
+                    .catch(error => {
+                        console.error('Помилка:', error);
+                        tableContainer.innerHTML = '<p class="error">Помилка завантаження даних</p>';
+                    });
+            });
+
+            forecastButton.addEventListener('click', function() {
+                const incomeCode = incomeSelect.value;
+                const selectedYears = Array.from(document.querySelectorAll('input[name="years"]:checked'))
+                                        .map(input => input.value);
+                const forecastPeriods = document.querySelector('#forecast_periods').value;
+                const testMode = document.querySelector('#test_mode').checked;
+
+                if (!incomeCode || selectedYears.length === 0) {
+                    forecastResults.innerHTML = '<p class="error">Оберіть код доходу та принаймні один рік</p>';
+                    return;
+                }
+
+                const params = new URLSearchParams();
+                params.append('budget_code', budgetCode);
+                params.append('income_code', incomeCode);
+                params.append('forecast_periods', forecastPeriods);
+                params.append('test_mode', testMode);
+                selectedYears.forEach(year => params.append('years', year));
+
+                fetch(`/get_forecast_data/?${params.toString()}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            forecastResults.innerHTML = `<p class="error">${data.error}</p>`;
+                            return;
+                        }
+
+                        let html = '<h3>Результати прогнозування</h3>';
+                        for (const [fund_typ, fund_results] of Object.entries(data.results)) {
+                            const fundTypeName = fund_typ === 'C' ? 'Загальний' : fund_typ === 'S' ? 'Спеціальний' : fund_typ;
+                            html += `<h4>Тип фонду: ${fundTypeName}</h4>`;
+                            for (const [method, result] of Object.entries(fund_results)) {
+                                html += `<h5>${method.toUpperCase()}</h5>`;
+                                if (result.metrics) {
+                                    html += `
+                                        <p>Метрики (2024):
+                                            MAE: ${formatNumber(result.metrics.MAE)},
+                                            RMSE: ${formatNumber(result.metrics.RMSE)},
+                                            MAPE: ${formatNumber(result.metrics.MAPE)}%
+                                        </p>`;
+                                }
+                                html += `
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Період</th>
+                                                <th>Прогноз (грн)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                `;
+                                result.forecast.forEach(row => {
+                                    html += `
+                                        <tr>
+                                            <td>${row.date}</td>
+                                            <td class="number">${formatNumber(row.forecast)}</td>
+                                        </tr>
+                                    `;
+                                });
+                                html += '</tbody></table>';
+                            }
+                        }
+                        forecastResults.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Помилка:', error);
+                        forecastResults.innerHTML = '<p class="error">Помилка прогнозування</p>';
+                    });
+            });
+
+            function formatNumber(value) {
+                if (value === '—' || value == null) return '—';
+                const num = parseFloat(value);
+                if (isNaN(num)) return value;
+                return num.toLocaleString('uk-UA', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+        });
+    </script>
 </head>
 <body>
     <h1>Прогнозування доходів</h1>
@@ -49,6 +218,30 @@
                 {% endfor %}
             </select>
         </div>
+
+        <div class="forecast-params">
+            <label>Роки для навчання:</label>
+            {% for year in years %}
+                <input type="checkbox" name="years" value="{{ year }}" {% if year != 2025 %}checked{% endif %}> {{ year }}
+            {% endfor %}
+            <br>
+            <label>Період прогнозу (місяці):</label>
+            <select id="forecast_periods">
+                {% for i in "x"|rjust:"12" %}
+                    <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                {% endfor %}
+            </select>
+            <br>
+            <label>Тестовий режим:</label>
+            <input type="checkbox" id="test_mode" name="test_mode"> Використати 2024 для оцінки точності
+        </div>
+
+        <div class="forecast-button">
+            <button id="forecast_button">Запустити прогноз</button>
+        </div>
+
+        <div id="income_data_table" class="income-data-table"></div>
+        <div id="forecast_results" class="forecast-results"></div>
     {% endif %}
 
     <p><a href="{% url 'budget_incomes' %}">Повернутися до доходів бюджетів</a></p>

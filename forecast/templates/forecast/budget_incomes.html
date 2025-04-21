@@ -18,7 +18,7 @@
         tr:nth-child(even) { background-color: #f9f9f9; }
         .button-container { margin-top: 10px; }
         .number { text-align: right; }
-        .forecast-button { margin-top: 20px; }
+        .forecast-button { margin: 20px 0; }
         .forecast-button a {
             display: inline-block;
             padding: 10px 20px;
@@ -141,6 +141,11 @@
     {% endif %}
 
     {% if results %}
+        {% if form.budget.value %}
+            <div class="forecast-button">
+                <a href="{% url 'forecast' %}?budget_code={{ form.budget.value }}">Перейти до прогнозування</a>
+            </div>
+        {% endif %}
         <table>
             <thead>
                 <tr>
@@ -187,11 +192,6 @@
                 {% endfor %}
             </tbody>
         </table>
-        {% if form.budget.value %}
-            <div class="forecast-button">
-                <a href="{% url 'forecast' %}?budget_code={{ form.budget.value }}">Перейти до прогнозування</a>
-            </div>
-        {% endif %}
     {% endif %}
 </body>
 </html>

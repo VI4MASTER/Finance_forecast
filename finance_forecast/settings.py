@@ -75,8 +75,12 @@ WSGI_APPLICATION = 'finance_forecast.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'finance_forecast',
+        'USER': 'postgres',  # Або 'finance_user', якщо створили окремого користувача
+        'PASSWORD': '13245',  # Замініть на ваш пароль
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

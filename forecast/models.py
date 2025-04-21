@@ -73,7 +73,6 @@ class IncomeHistory(models.Model):
     rep_period = models.CharField(max_length=7)  # Формат: MM.YYYY
     fund_typ = models.CharField(max_length=1)  # C, S, T
     cod_inco = models.CharField(max_length=20)
-    zat_amt = models.FloatField(null=True)
     fakt_amt = models.FloatField(null=True)
 
     class Meta:

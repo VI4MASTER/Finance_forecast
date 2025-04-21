@@ -3,12 +3,14 @@ from django.http import JsonResponse
 from .forms import BudgetQueryForm
 from .api import fetch_budget_incomes_data
 from .models import Budgets, IncomeHistory, Incomes
+from .forecasting import prophet_forecast, sarima_forecast, gradient_boosting_forecast, prepare_data
 import pandas as pd
 from datetime import datetime
 import logging
+from django.db import connection
 
-# Налаштування логування
 logger = logging.getLogger(__name__)
+
 
 def budget_incomes_view(request):
     form = BudgetQueryForm(request.POST or None)
@@ -22,7 +24,6 @@ def budget_incomes_view(request):
     success_db = False
     current_month = datetime.now().month
 
-    # Визначаємо діапазон років (2018 – поточний рік)
     current_year = datetime.now().year
     years = list(range(2018, current_year + 1))
 
@@ -32,7 +33,6 @@ def budget_incomes_view(request):
             period = form.cleaned_data['period']
             load_missing = request.POST.get('load_missing')
 
-            # Перевіряємо базу даних
             all_data = []
             years_to_fetch = []
             available_data = {}
@@ -40,10 +40,9 @@ def budget_incomes_view(request):
                 existing_data = IncomeHistory.objects.filter(
                     budget__code_budg=budget_code,
                     rep_period__regex=r'^\d{2}\.' + str(year) + '$'
-                ).values('rep_period', 'fund_typ', 'cod_inco', 'zat_amt', 'fakt_amt')
+                ).values('rep_period', 'fund_typ', 'cod_inco', 'fakt_amt')
 
                 if existing_data.exists():
-                    # Збираємо місяці для року
                     months = sorted(set(
                         int(row['rep_period'].split('.')[0])
                         for row in existing_data
@@ -51,7 +50,8 @@ def budget_incomes_view(request):
                     ))
                     available_data[year] = months
                     all_data.extend(existing_data)
-                    logger.debug(f"Знайдено дані за {year} для бюджету {budget_code}: {len(existing_data)} записів, місяці: {months}")
+                    logger.debug(
+                        f"Знайдено дані за {year} для бюджету {budget_code}: {len(existing_data)} записів, місяці: {months}")
                     if year == current_year:
                         last_year_month = max(months) if months else None
                 else:
@@ -59,17 +59,14 @@ def budget_incomes_view(request):
                     available_data[year] = []
                     logger.debug(f"Дані за {year} для бюджету {budget_code} відсутні")
 
-            # Визначаємо, чи потрібно показувати кнопку завантаження
             if years_to_fetch or (last_year_month and last_year_month < datetime.now().month):
                 missing_years = years_to_fetch
                 show_load_button = True
 
             if load_missing and (years_to_fetch or (last_year_month and last_year_month < datetime.now().month)):
-                # Якщо дані за поточний рік неповні, додаємо його до запиту
                 if last_year_month and last_year_month < datetime.now().month and current_year not in years_to_fetch:
                     years_to_fetch.append(current_year)
 
-                # Завантажуємо відсутні роки з API
                 api_results = fetch_budget_incomes_data(
                     budget_code=budget_code,
                     years=years_to_fetch,
@@ -79,7 +76,6 @@ def budget_incomes_view(request):
                     success_api = True
                     all_data.extend(api_results)
 
-                    # Зберігаємо нові дані в базу
                     budget_obj = Budgets.objects.get(code_budg=budget_code)
                     for row in api_results:
                         rep_period = str(row['rep_period'])
@@ -90,14 +86,10 @@ def budget_incomes_view(request):
                             rep_period=rep_period,
                             fund_typ=row['fund_typ'],
                             cod_inco=row['cod_inco'],
-                            defaults={
-                                'zat_amt': row['zat_amt'],
-                                'fakt_amt': row['fakt_amt']
-                            }
+                            defaults={'fakt_amt': row['fakt_amt']}
                         )
                     success_db = True
 
-                    # Оновлюємо available_data, missing_years і show_load_button
                     available_data = {}
                     years_to_fetch = []
                     for year in years:
@@ -116,13 +108,12 @@ def budget_incomes_view(request):
                         if year == current_year:
                             last_year_month = max(months) if months else None
 
-                    # Перевіряємо, чи потрібно показувати кнопку завантаження
-                    show_load_button = bool(years_to_fetch or (last_year_month and last_year_month < datetime.now().month))
+                    show_load_button = bool(
+                        years_to_fetch or (last_year_month and last_year_month < datetime.now().month))
                     missing_years = years_to_fetch if years_to_fetch else None
 
-            # Обробляємо дані
             if all_data:
-                required_keys = {'rep_period', 'fund_typ', 'cod_inco', 'zat_amt', 'fakt_amt'}
+                required_keys = {'rep_period', 'fund_typ', 'cod_inco', 'fakt_amt'}
                 all_data = [row for row in all_data if all(key in row for key in required_keys)]
 
                 if not all_data:
@@ -135,19 +126,10 @@ def budget_incomes_view(request):
                 if df.empty:
                     raise ValueError("Немає даних із коректним форматом rep_period (MM.YYYY)")
 
-                # Витягуємо рік і місяць
                 df['year'] = df['rep_period'].str.split('.').str[1]
                 df['month'] = df['rep_period'].str.split('.').str[0].astype(int)
-
-                # Сортуємо дані
                 df = df.sort_values(by=['year', 'cod_inco', 'fund_typ', 'month'])
 
-                # Обчислюємо різницю для fakt_amt
-                df['fakt_amt_diff'] = df.groupby(['year', 'cod_inco', 'fund_typ'])['fakt_amt'].diff().fillna(df['fakt_amt'])
-                df['fakt_amt'] = df['fakt_amt_diff']
-                df = df.drop(columns=['fakt_amt_diff'])
-
-                # Створюємо зведену таблицю
                 pivot_df = df.pivot_table(
                     values='fakt_amt',
                     index=['cod_inco', 'fund_typ', 'year'],
@@ -179,6 +161,7 @@ def budget_incomes_view(request):
         'success_db': success_db
     })
 
+
 def forecast_view(request):
     budget_code = request.GET.get('budget_code')
     error = None
@@ -194,10 +177,8 @@ def forecast_view(request):
         if not budget_code:
             raise ValueError("Код бюджету не вказано")
 
-        # Отримуємо інформацію про бюджет
         budget = Budgets.objects.get(code_budg=budget_code)
 
-        # Отримуємо період наявних даних
         available_data = {}
         for year in years:
             existing_data = IncomeHistory.objects.filter(
@@ -213,13 +194,11 @@ def forecast_view(request):
             if year == current_year and months:
                 last_year_month = max(months)
 
-        # Отримуємо коди доходів із даними для цього бюджету
         income_codes = IncomeHistory.objects.filter(
             budget__code_budg=budget_code
         ).values('cod_inco').distinct()
         income_codes_list = [item['cod_inco'] for item in income_codes]
 
-        # Отримуємо назви кодів доходів із довідника
         incomes = Incomes.objects.filter(kdb_code__in=income_codes_list).order_by('kdb_code')
 
         if not incomes.exists():
@@ -238,8 +217,10 @@ def forecast_view(request):
         'current_year': current_year,
         'current_month': current_month,
         'incomes': incomes,
-        'error': error
+        'error': error,
+        'years': years
     })
+
 
 def get_budgets_by_region(request):
     region_id = request.GET.get('region')
@@ -249,4 +230,138 @@ def get_budgets_by_region(request):
         {'code_budg': budget.code_budg, 'name_budg': budget.name_budg or "Без назви"}
         for budget in budgets
     ]
+    connection.close()
     return JsonResponse({'budgets': data})
+
+
+def get_income_data(request):
+    budget_code = request.GET.get('budget_code')
+    income_code = request.GET.get('income_code')
+    try:
+        if not budget_code or not income_code:
+            return JsonResponse({'error': 'Не вказано код бюджету або код доходу'}, status=400)
+
+        data = IncomeHistory.objects.filter(
+            budget__code_budg=budget_code,
+            cod_inco=income_code
+        ).values('rep_period', 'fund_typ', 'fakt_amt')
+
+        if not data.exists():
+            return JsonResponse({'error': 'Дані для цього коду доходу відсутні'}, status=404)
+
+        df = pd.DataFrame(data)
+        df['rep_period'] = df['rep_period'].astype(str)
+        df = df[df['rep_period'].str.contains(r'^\d{2}\.\d{4}$', na=False)]
+
+        if df.empty:
+            return JsonResponse({'error': 'Немає даних із коректним форматом rep_period'}, status=404)
+
+        df['year'] = df['rep_period'].str.split('.').str[1]
+        df['month'] = df['rep_period'].str.split('.').str[0].astype(int)
+        df = df.sort_values(by=['year', 'fund_typ', 'month'])
+
+        pivot_df = df.pivot_table(
+            values='fakt_amt',
+            index=['year', 'fund_typ'],
+            columns='month',
+            aggfunc='first'
+        ).reset_index()
+        pivot_df.columns = ['year', 'fund_typ'] + [f"{month:02d}" for month in range(1, 13)]
+        pivot_df = pivot_df.fillna('—')
+
+        results = pivot_df.to_dict('records')
+        return JsonResponse({'data': results})
+
+    except Exception as e:
+        logger.error(f"Помилка отримання даних доходу: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def get_forecast_data(request):
+    budget_code = request.GET.get('budget_code')
+    income_code = request.GET.get('income_code')
+    years = request.GET.getlist('years', [])
+    forecast_periods = int(request.GET.get('forecast_periods', 12))
+    test_mode = request.GET.get('test_mode', 'false').lower() == 'true'
+
+    try:
+        if not budget_code or not income_code or not years:
+            return JsonResponse({'error': 'Не вказано код бюджету, код доходу або роки'}, status=400)
+
+        # Обробка параметра years
+        if len(years) == 1 and ',' in years[0]:
+            years = years[0].split(',')
+        selected_years = [int(y.strip()) for y in years if y.strip().isdigit()]
+
+        if not selected_years:
+            return JsonResponse({'error': 'Невалідні роки'}, status=400)
+
+        logger.debug(
+            f"Запит для budget_code={budget_code}, income_code={income_code}, years={selected_years}, test_mode={test_mode}")
+
+        data = IncomeHistory.objects.filter(
+            budget__code_budg=budget_code,
+            cod_inco=income_code
+        ).values('rep_period', 'fakt_amt', 'fund_typ')
+
+        if not data.exists():
+            logger.error(f"Дані відсутні для budget_code={budget_code}, income_code={income_code}")
+            return JsonResponse({'error': 'Дані для цього коду доходу відсутні'}, status=404)
+
+        df = pd.DataFrame(data)
+        logger.debug(f"Отримано {len(df)} записів із IncomeHistory")
+
+        df['rep_period'] = df['rep_period'].astype(str)
+        df = df[df['rep_period'].str.contains(r'^\d{2}\.\d{4}$', na=False)]
+
+        if df.empty:
+            logger.error(
+                f"Немає даних із коректним форматом rep_period для budget_code={budget_code}, income_code={income_code}")
+            return JsonResponse({'error': 'Немає даних із коректним форматом rep_period'}, status=404)
+
+        # Прогноз для кожного fund_typ окремо
+        results = {}
+        fund_types = df['fund_typ'].unique()
+        logger.debug(f"Знайдено fund_typ: {fund_types}")
+
+        for fund_typ in fund_types:
+            fund_df = df[df['fund_typ'] == fund_typ]
+            logger.debug(f"Обробка fund_typ={fund_typ}, записів: {len(fund_df)}")
+
+            train_df, test_df = prepare_data(fund_df, selected_years, test_mode, fund_typ)
+
+            if train_df.empty:
+                logger.warning(f"Порожній train_df для fund_typ={fund_typ}")
+                continue
+
+            fund_results = {}
+            for method in ['prophet', 'sarima', 'gradient_boosting']:
+                logger.debug(f"Виконання {method} для fund_typ={fund_typ}")
+                if method == 'prophet':
+                    forecast, metrics = prophet_forecast(train_df, test_df, forecast_periods)
+                elif method == 'sarima':
+                    forecast, metrics = sarima_forecast(train_df, test_df, forecast_periods)
+                else:
+                    forecast, metrics = gradient_boosting_forecast(train_df, test_df, forecast_periods)
+
+                if forecast is not None:
+                    forecast['date'] = forecast['date'].dt.strftime('%m.%Y')
+                    fund_results[method] = {
+                        'forecast': forecast.to_dict('records'),
+                        'metrics': metrics
+                    }
+                else:
+                    logger.warning(f"Прогноз {method} не виконано для fund_typ={fund_typ}")
+
+            if fund_results:
+                results[fund_typ] = fund_results
+
+        if not results:
+            logger.error("Жоден прогноз не виконано")
+            return JsonResponse({'error': 'Не вдалося виконати жоден прогноз через брак даних'}, status=404)
+
+        return JsonResponse({'results': results})
+
+    except Exception as e:
+        logger.error(f"Помилка прогнозування: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
