@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from .forms import BudgetQueryForm
 from .api import fetch_budget_incomes_data
 from .models import Budgets, IncomeHistory, Incomes
@@ -7,10 +7,9 @@ from .forecasting import prophet_forecast, sarima_forecast, gradient_boosting_fo
 import pandas as pd
 from datetime import datetime
 import logging
-from django.db import connection
+from io import BytesIO
 
 logger = logging.getLogger(__name__)
-
 
 def budget_incomes_view(request):
     form = BudgetQueryForm(request.POST or None)
@@ -161,7 +160,6 @@ def budget_incomes_view(request):
         'success_db': success_db
     })
 
-
 def forecast_view(request):
     budget_code = request.GET.get('budget_code')
     error = None
@@ -221,7 +219,6 @@ def forecast_view(request):
         'years': years
     })
 
-
 def get_budgets_by_region(request):
     region_id = request.GET.get('region')
     budgets = Budgets.objects.filter(code_region=region_id).order_by(
@@ -230,9 +227,7 @@ def get_budgets_by_region(request):
         {'code_budg': budget.code_budg, 'name_budg': budget.name_budg or "Без назви"}
         for budget in budgets
     ]
-    connection.close()
     return JsonResponse({'budgets': data})
-
 
 def get_income_data(request):
     budget_code = request.GET.get('budget_code')
@@ -275,7 +270,6 @@ def get_income_data(request):
     except Exception as e:
         logger.error(f"Помилка отримання даних доходу: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
 
 def get_forecast_data(request):
     budget_code = request.GET.get('budget_code')
@@ -364,4 +358,94 @@ def get_forecast_data(request):
 
     except Exception as e:
         logger.error(f"Помилка прогнозування: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+def download_excel(request):
+    try:
+        # Отримуємо параметри з запиту
+        budget_code = request.GET.get('budget_code')
+        income_code = request.GET.get('income_code')
+        years = request.GET.getlist('years', [])
+        forecast_periods = int(request.GET.get('forecast_periods', 12))
+        test_mode = request.GET.get('test_mode', 'false').lower() == 'true'
+
+        if not budget_code or not income_code or not years:
+            return JsonResponse({'error': 'Не вказано код бюджету, код доходу або роки'}, status=400)
+
+        # Обробка параметра years
+        if len(years) == 1 and ',' in years[0]:
+            years = years[0].split(',')
+        selected_years = [int(y.strip()) for y in years if y.strip().isdigit()]
+
+        if not selected_years:
+            return JsonResponse({'error': 'Невалідні роки'}, status=400)
+
+        # Отримуємо історичні дані
+        data = IncomeHistory.objects.filter(
+            budget__code_budg=budget_code,
+            cod_inco=income_code
+        ).values('rep_period', 'fakt_amt', 'fund_typ')
+
+        if not data.exists():
+            return JsonResponse({'error': 'Дані для цього коду доходу відсутні'}, status=404)
+
+        df = pd.DataFrame(data)
+        df['rep_period'] = df['rep_period'].astype(str)
+        df = df[df['rep_period'].str.contains(r'^\d{2}\.\d{4}$', na=False)]
+
+        if df.empty:
+            return JsonResponse({'error': 'Немає даних із коректним форматом rep_period'}, status=404)
+
+        # Створюємо Excel-файл у пам'яті
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            # 1. Лист із історичними даними
+            df['year'] = df['rep_period'].str.split('.').str[1]
+            df['month'] = df['rep_period'].str.split('.').str[0].astype(int)
+            pivot_df = df.pivot_table(
+                values='fakt_amt',
+                index=['year', 'fund_typ'],
+                columns='month',
+                aggfunc='first'
+            ).reset_index()
+            pivot_df.columns = ['Рік', 'Тип фонду'] + [f"Місяць {month:02d}" for month in range(1, 13)]
+            pivot_df.to_excel(writer, sheet_name='Historical_Data', index=False)
+
+            # 2. Лист із прогнозами
+            fund_types = df['fund_typ'].unique()
+            for fund_typ in fund_types:
+                fund_df = df[df['fund_typ'] == fund_typ]
+                train_df, test_df = prepare_data(fund_df, selected_years, test_mode, fund_typ)
+
+                if train_df.empty:
+                    continue
+
+                # Виконуємо прогнози для кожного методу
+                for method in ['prophet', 'sarima', 'gradient_boosting']:
+                    if method == 'prophet':
+                        forecast, _ = prophet_forecast(train_df, test_df, forecast_periods)
+                    elif method == 'sarima':
+                        forecast, _ = sarima_forecast(train_df, test_df, forecast_periods)
+                    else:
+                        forecast, _ = gradient_boosting_forecast(train_df, test_df, forecast_periods)
+
+                    if forecast is not None:
+                        forecast['date'] = forecast['date'].dt.strftime('%m.%Y')
+                        forecast_df = forecast[['date', 'forecast']].copy()
+                        forecast_df.columns = ['Дата', f'Прогноз ({method})']
+                        forecast_df['Тип фонду'] = fund_typ
+                        sheet_name = f'Forecast_{fund_typ}_{method}'
+                        forecast_df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        # Повертаємо Excel-файл як відповідь
+        output.seek(0)
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="forecast_{income_code}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+        return response
+
+    except Exception as e:
+        logger.error(f"Помилка створення Excel-файлу: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)

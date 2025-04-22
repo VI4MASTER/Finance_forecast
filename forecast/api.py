@@ -1,4 +1,4 @@
-import requests
+import aiohttp
 import pandas
 import io
 import logging
@@ -9,50 +9,53 @@ logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.openbudget.gov.ua/"
 
-def fetch_budget_dict_data():
+async def fetch_budget_dict_data():
     try:
-        budgets_response = requests.get(
-            f"{BASE_URL}items/BUDG",
-            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-            timeout=30
-        )
-        if budgets_response.status_code == 200:
-            return budgets_response.json()
-        else:
-            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
-            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {budgets_response.status_code}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{BASE_URL}items/BUDG",
+                params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+                timeout=30
+            ) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.error(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {response.status}")
+                    raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/BUDG: {response.status}")
     except Exception as e:
         logger.error(f"Загальна помилка при отриманні даних бюджетів: {e}")
         raise
 
-def fetch_region_dict_data():
+async def fetch_region_dict_data():
     try:
-        regions_response = requests.get(
-            f"{BASE_URL}items/CODEREGION",
-            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-            timeout=30
-        )
-        if regions_response.status_code == 200:
-            return regions_response.json()
-        else:
-            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {regions_response.status_code}")
-            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {regions_response.status_code}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{BASE_URL}items/CODEREGION",
+                params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+                timeout=30
+            ) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.error(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {response.status}")
+                    raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/CODEREGION: {response.status}")
     except Exception as e:
         logger.error(f"Загальна помилка при отриманні даних регіонів: {e}")
         raise
 
-def fetch_incomes_dict_data():
+async def fetch_incomes_dict_data():
     try:
-        incomes_response = requests.get(
-            f"{BASE_URL}items/KDB",
-            params={"dateFrom": date.today().strftime('%Y-%m-%d')},
-            timeout=30
-        )
-        if incomes_response.status_code == 200:
-            return incomes_response.json()
-        else:
-            logger.error(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {incomes_response.status_code}")
-            raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {incomes_response.status_code}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{BASE_URL}items/KDB",
+                params={"dateFrom": date.today().strftime('%Y-%m-%d')},
+                timeout=30
+            ) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.error(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {response.status}")
+                    raise Exception(f"Помилка при отриманні даних із {BASE_URL}items/KDB: {response.status}")
     except Exception as e:
         logger.error(f"Загальна помилка при отриманні даних доходів: {e}")
         raise

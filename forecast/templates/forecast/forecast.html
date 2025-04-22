@@ -94,6 +94,7 @@
             font-size: 16px;
             transition: background 0.3s, transform 0.1s;
             text-decoration: none;
+            margin-right: 10px;
         }
 
         .btn:hover {
@@ -230,34 +231,32 @@
             margin-bottom: 15px;
         }
 
-        .table-responsive {
-            overflow-x: auto;
+        .compact-table {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
         }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
+        .compact-table-item {
+            flex: 1 1 auto;
+            min-width: 120px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            text-align: center;
+            background-color: white;
+        }
+
+        .compact-table-item strong {
+            display: block;
+            margin-bottom: 5px;
             font-size: 14px;
         }
 
-        th, td {
-            padding: 12px 8px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: 500;
-            color: var(--dark-gray);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        tr:hover {
-            background-color: rgba(52, 152, 219, 0.05);
+        .compact-table-item .number {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
         }
 
         .fund-badge {
@@ -476,6 +475,14 @@
             .checkbox-wrapper {
                 margin-right: 0;
             }
+
+            .compact-table-item {
+                min-width: 100px;
+            }
+
+            .btn {
+                margin-bottom: 10px;
+            }
         }
     </style>
     <script>
@@ -486,6 +493,10 @@
             const forecastResults = document.querySelector('#forecast_results');
             const loaderElement = document.querySelector('#loader');
             const budgetCode = new URLSearchParams(window.location.search).get('budget_code');
+
+            // Зберігаємо історичні дані та прогнози для завантаження
+            let historicalData = null;
+            let forecastData = null;
 
             // Ініціалізація тултіпів
             const tooltips = document.querySelectorAll('.tooltip');
@@ -505,6 +516,8 @@
                 const incomeCode = this.value;
                 tableContainer.innerHTML = '';
                 forecastResults.innerHTML = '';
+                historicalData = null;
+                forecastData = null;
 
                 if (!incomeCode) return;
 
@@ -520,33 +533,14 @@
                             return;
                         }
 
+                        historicalData = data.data;
+
                         let tableHTML = `
                             <div class="card">
                                 <div class="card-header">
                                     Історичні дані для коду доходу: ${incomeCode}
                                 </div>
                                 <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>Рік</th>
-                                                    <th>Тип фонду</th>
-                                                    <th>01</th>
-                                                    <th>02</th>
-                                                    <th>03</th>
-                                                    <th>04</th>
-                                                    <th>05</th>
-                                                    <th>06</th>
-                                                    <th>07</th>
-                                                    <th>08</th>
-                                                    <th>09</th>
-                                                    <th>10</th>
-                                                    <th>11</th>
-                                                    <th>12</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
                         `;
 
                         data.data.forEach(row => {
@@ -557,29 +551,29 @@
                                 row.fund_typ;
 
                             tableHTML += `
-                                <tr>
-                                    <td><strong>${row.year}</strong></td>
-                                    <td>${fundType}</td>
-                                    <td class="number">${formatNumber(row['01'])}</td>
-                                    <td class="number">${formatNumber(row['02'])}</td>
-                                    <td class="number">${formatNumber(row['03'])}</td>
-                                    <td class="number">${formatNumber(row['04'])}</td>
-                                    <td class="number">${formatNumber(row['05'])}</td>
-                                    <td class="number">${formatNumber(row['06'])}</td>
-                                    <td class="number">${formatNumber(row['07'])}</td>
-                                    <td class="number">${formatNumber(row['08'])}</td>
-                                    <td class="number">${formatNumber(row['09'])}</td>
-                                    <td class="number">${formatNumber(row['10'])}</td>
-                                    <td class="number">${formatNumber(row['11'])}</td>
-                                    <td class="number">${formatNumber(row['12'])}</td>
-                                </tr>
+                                <div style="margin-bottom: 20px;">
+                                    <strong>${row.year} - ${fundType}</strong>
+                                    <div class="compact-table">
+                            `;
+
+                            for (let month = 1; month <= 12; month++) {
+                                const monthKey = month.toString().padStart(2, '0');
+                                const value = row[monthKey];
+                                tableHTML += `
+                                    <div class="compact-table-item">
+                                        <strong>${monthKey}</strong>
+                                        <span class="number">${formatNumber(value)}</span>
+                                    </div>
+                                `;
+                            }
+
+                            tableHTML += `
+                                    </div>
+                                </div>
                             `;
                         });
 
                         tableHTML += `
-                                            </tbody>
-                                        </table>
-                                    </div>
                                 </div>
                             </div>
                         `;
@@ -624,9 +618,14 @@
                             return;
                         }
 
+                        forecastData = data.results;
+
                         let resultsHTML = `
                             <div class="forecast-result-container">
                                 <h3><i class="fas fa-chart-line"></i> Результати прогнозування</h3>
+                                <button id="download_excel" class="btn btn-success">
+                                    <i class="fas fa-file-excel"></i> Завантажити Excel
+                                </button>
                         `;
 
                         for (const [fund_typ, fund_results] of Object.entries(data.results)) {
@@ -644,9 +643,9 @@
                             `;
 
                             for (const [method, result] of Object.entries(fund_results)) {
-                                const methodIcon = method === 'arima' ? 'fa-chart-line' :
-                                                 method === 'sarimax' ? 'fa-chart-bar' :
-                                                 method === 'prophet' ? 'fa-fire' : 'fa-chart-pie';
+                                const methodIcon = method === 'sarima' ? 'fa-chart-bar' :
+                                                 method === 'prophet' ? 'fa-fire' :
+                                                 'fa-chart-pie';
 
                                 resultsHTML += `
                                     <div class="forecast-method">
@@ -671,15 +670,15 @@
                                     resultsHTML += `
                                         <div class="metrics-panel">
                                             <div class="metric-item">
-                                                <span class="metric-label">MAE (середня абсолютна помилка)</span>
+                                                <span class="metric-label">MAE</span>
                                                 <span class="metric-value">${formatNumber(result.metrics.MAE)}</span>
                                             </div>
                                             <div class="metric-item">
-                                                <span class="metric-label">RMSE (середньоквадратична помилка)</span>
+                                                <span class="metric-label">RMSE</span>
                                                 <span class="metric-value">${formatNumber(result.metrics.RMSE)}</span>
                                             </div>
                                             <div class="metric-item">
-                                                <span class="metric-label">MAPE (середня абсолютна відсоткова помилка)</span>
+                                                <span class="metric-label">MAPE</span>
                                                 <span class="metric-value">${formatNumber(result.metrics.MAPE)}%</span>
                                             </div>
                                         </div>
@@ -687,29 +686,19 @@
                                 }
 
                                 resultsHTML += `
-                                            <div class="table-responsive">
-                                                <table>
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Період</th>
-                                                            <th>Прогноз (грн)</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
+                                            <div class="compact-table">
                                     `;
 
                                 result.forecast.forEach(row => {
                                     resultsHTML += `
-                                        <tr>
-                                            <td>${row.date}</td>
-                                            <td class="number">${formatNumber(row.forecast)}</td>
-                                        </tr>
+                                        <div class="compact-table-item">
+                                            <strong>${row.date}</strong>
+                                            <span class="number">${formatNumber(row.forecast)}</span>
+                                        </div>
                                     `;
                                 });
 
                                 resultsHTML += `
-                                                    </tbody>
-                                                </table>
                                             </div>
                                         </div>
                                     </div>
@@ -724,6 +713,48 @@
 
                         resultsHTML += `</div>`;
                         forecastResults.innerHTML = resultsHTML;
+
+                        // Додаємо обробник для кнопки завантаження Excel
+                        const downloadButton = document.querySelector('#download_excel');
+                        downloadButton.addEventListener('click', function() {
+                            if (!historicalData || !forecastData) {
+                                alert('Дані для завантаження відсутні');
+                                return;
+                            }
+
+                            loaderElement.style.display = 'block';
+
+                            const downloadParams = new URLSearchParams();
+                            downloadParams.append('budget_code', budgetCode);
+                            downloadParams.append('income_code', incomeCode);
+                            downloadParams.append('forecast_periods', forecastPeriods);
+                            downloadParams.append('test_mode', testMode);
+                            selectedYears.forEach(year => downloadParams.append('years', year));
+
+                            fetch(`/download_excel/?${downloadParams.toString()}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Помилка завантаження файлу');
+                                    }
+                                    return response.blob();
+                                })
+                                .then(blob => {
+                                    loaderElement.style.display = 'none';
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `forecast_${incomeCode}_${new Date().toISOString().slice(0,10)}.xlsx`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    a.remove();
+                                    window.URL.revokeObjectURL(url);
+                                })
+                                .catch(error => {
+                                    console.error('Помилка:', error);
+                                    loaderElement.style.display = 'none';
+                                    forecastResults.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Помилка завантаження файлу</div>';
+                                });
+                        });
 
                         forecastResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     })
@@ -746,10 +777,9 @@
 
             function getMethodDescription(method) {
                 const descriptions = {
-                    'arima': 'Авторегресійна інтегрована модель ковзного середнього для часових рядів.',
-                    'sarimax': 'Сезонна авторегресійна інтегрована модель ковзного середнього з екзогенними змінними.',
+                    'sarima': 'Сезонна авторегресійна інтегрована модель ковзного середнього для часових рядів.',
                     'prophet': 'Адитивна регресійна модель від Facebook для прогнозування часових рядів.',
-                    'exponential': 'Метод експоненціального згладжування для виявлення тренду та сезонності.'
+                    'gradient_boosting': 'Метод градієнтного бустингу для прогнозування на основі дерев рішень.'
                 };
 
                 return descriptions[method] || `Метод прогнозування ${method}`;
@@ -873,6 +903,5 @@
             </p>
         </div>
     </footer>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'933df5d85e50804f',t:'MTc0NTI0OTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

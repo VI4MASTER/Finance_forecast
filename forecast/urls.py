@@ -7,4 +7,5 @@ urlpatterns = [
     path('get_budgets_by_region/', views.get_budgets_by_region, name='get_budgets_by_region'),
     path('get_income_data/', views.get_income_data, name='get_income_data'),
     path('get_forecast_data/', views.get_forecast_data, name='get_forecast_data'),
+    path('download_excel/', views.download_excel, name='download_excel'),
 ]

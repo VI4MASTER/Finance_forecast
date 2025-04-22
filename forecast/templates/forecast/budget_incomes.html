@@ -190,39 +190,32 @@
             margin-left: -1em;
         }
 
-        .table-responsive {
-            overflow-x: auto;
+        .compact-table {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
         }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
+        .compact-table-item {
+            flex: 1 1 auto;
+            min-width: 120px;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            text-align: center;
+            background-color: white;
+        }
+
+        .compact-table-item strong {
+            display: block;
+            margin-bottom: 5px;
             font-size: 14px;
         }
 
-        th, td {
-            padding: 12px 8px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: 500;
-            color: var(--dark-gray);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        tr:hover {
-            background-color: rgba(52, 152, 219, 0.05);
-        }
-
-        .number {
-            text-align: right;
+        .compact-table-item .number {
             font-family: 'Consolas', monospace;
+            font-size: 14px;
         }
 
         .forecast-button {
@@ -237,11 +230,6 @@
 
         .forecast-link i {
             font-size: 14px;
-        }
-
-        .year-column {
-            font-weight: 500;
-            color: var(--dark-gray);
         }
 
         .fund-type {
@@ -290,9 +278,8 @@
                 width: 100%;
             }
 
-            .table-responsive {
-                max-width: 100%;
-                overflow-x: auto;
+            .compact-table-item {
+                min-width: 100px;
             }
 
             h1 {
@@ -398,6 +385,7 @@
     </header>
 
     <div class="container">
+        {% load custom_filters %}
         <div class="card">
             <div class="card-header">
                 Параметри пошуку
@@ -511,62 +499,30 @@
                     Результати пошуку
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Код доходу</th>
-                                    <th>Тип фонду</th>
-                                    <th>Рік</th>
-                                    <th>01</th>
-                                    <th>02</th>
-                                    <th>03</th>
-                                    <th>04</th>
-                                    <th>05</th>
-                                    <th>06</th>
-                                    <th>07</th>
-                                    <th>08</th>
-                                    <th>09</th>
-                                    <th>10</th>
-                                    <th>11</th>
-                                    <th>12</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in results|dictsort:"year"|dictsort:"cod_inco" %}
-                                    <tr>
-                                        <td>{{ row.cod_inco }}</td>
-                                        <td>
-                                            {% if row.fund_typ == 'C' %}
-                                                <span class="fund-type fund-general">Загальний</span>
-                                            {% elif row.fund_typ == 'S' %}
-                                                <span class="fund-type fund-special">Спеціальний</span>
-                                            {% else %}
-                                                {{ row.fund_typ }}
-                                            {% endif %}
-                                        </td>
-                                        <td class="year-column">{{ row.year }}</td>
-                                        <td class="number">{{ row.01|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.02|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.03|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.04|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.05|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.06|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.07|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.08|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.09|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.10|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.11|floatformat:2|default:"—" }}</td>
-                                        <td class="number">{{ row.12|floatformat:2|default:"—" }}</td>
-                                    </tr>
+                    {% for row in results|dictsort:"year"|dictsort:"cod_inco" %}
+                        <div style="margin-bottom: 20px;">
+                            <strong>{{ row.cod_inco }} -
+                            {% if row.fund_typ == 'C' %}
+                                <span class="fund-type fund-general">Загальний</span>
+                            {% elif row.fund_typ == 'S' %}
+                                <span class="fund-type fund-special">Спеціальний</span>
+                            {% else %}
+                                {{ row.fund_typ }}
+                            {% endif %}
+                            - {{ row.year }}</strong>
+                            <div class="compact-table">
+                                {% for month in "01 02 03 04 05 06 07 08 09 10 11 12"|split %}
+                                    <div class="compact-table-item">
+                                        <strong>{{ month }}</strong>
+                                        <span class="number">{{ row|get_item:month|floatformat:2|default:"—" }}</span>
+                                    </div>
                                 {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
             </div>
         {% endif %}
     </div>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'933df5d55b34bd28',t:'MTc0NTI0OTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
