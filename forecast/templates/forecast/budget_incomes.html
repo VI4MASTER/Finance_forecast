@@ -2,32 +2,303 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Дохід бюджетів</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .form-container { margin-bottom: 20px; }
-        .form-container label { display: inline-block; width: 150px; vertical-align: top; }
-        .form-container select, .form-container input { margin-bottom: 10px; padding: 5px; width: 300px; }
-        .error { color: red; }
-        .success { color: green; margin-bottom: 10px; }
-        .data-status { color: #333; margin-bottom: 10px; }
-        .missing-data { color: orange; margin-bottom: 10px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .button-container { margin-top: 10px; }
-        .number { text-align: right; }
-        .forecast-button { margin: 20px 0; }
-        .forecast-button a {
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-dark: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-gray: #f5f5f5;
+            --dark-gray: #333;
+            --border-color: #e0e0e0;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            margin: 0;
+            padding: 0 20px;
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            width: 150px;
+        }
+
+        .form-control {
+            flex: 1;
+            min-width: 250px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .btn {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #007bff;
+            background-color: var(--primary-color);
             color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s, transform 0.1s;
             text-decoration: none;
-            border-radius: 5px;
         }
-        .forecast-button a:hover { background-color: #0056b3; }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-success:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: var(--radius);
+            border-left: 4px solid transparent;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            border-left-color: var(--secondary-color);
+            color: #155724;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-left-color: var(--warning-color);
+            color: #856404;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-left-color: var(--danger-color);
+            color: #721c24;
+        }
+
+        .data-status {
+            margin-bottom: 15px;
+        }
+
+        .data-status ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+
+        .data-status li {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .data-status li::before {
+            content: "\2022";
+            color: var(--primary-color);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: var(--dark-gray);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .number {
+            text-align: right;
+            font-family: 'Consolas', monospace;
+        }
+
+        .forecast-button {
+            margin: 20px 0;
+        }
+
+        .forecast-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .forecast-link i {
+            font-size: 14px;
+        }
+
+        .year-column {
+            font-weight: 500;
+            color: var(--dark-gray);
+        }
+
+        .fund-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .fund-general {
+            background-color: #e8f4fd;
+            color: #2980b9;
+        }
+
+        .fund-special {
+            background-color: #e8f8f5;
+            color: #16a085;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        @media (max-width: 768px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-group label {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .form-control {
+                width: 100%;
+            }
+
+            .table-responsive {
+                max-width: 100%;
+                overflow-x: auto;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -47,151 +318,255 @@
             const regionSelect = document.querySelector('#id_region');
             const budgetSelect = document.querySelector('#id_budget');
 
-            regionSelect.addEventListener('change', function() {
-                const region = this.value;
+            // Функція для оновлення бюджетів
+            function updateBudgets(region) {
                 budgetSelect.innerHTML = '<option value="">Оберіть бюджет</option>';
+
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.id = 'loading-budgets';
+                loadingIndicator.className = 'alert alert-info';
+                loadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Завантаження бюджетів...';
+
+                const formGroup = budgetSelect.closest('.form-group');
+                if (!document.getElementById('loading-budgets')) {
+                    formGroup.appendChild(loadingIndicator);
+                }
 
                 if (region) {
                     fetch(`/get_budgets_by_region/?region=${region}`)
                         .then(response => response.json())
                         .then(data => {
+                            const loadingElement = document.getElementById('loading-budgets');
+                            if (loadingElement) loadingElement.remove();
+
                             data.budgets.forEach(budget => {
                                 const option = document.createElement('option');
                                 option.value = budget.code_budg;
                                 option.text = budget.name_budg;
+                                // Зберігаємо вибраний бюджет, якщо він є
+                                if (budgetSelect.dataset.selected == budget.code_budg) {
+                                    option.selected = true;
+                                }
                                 budgetSelect.appendChild(option);
                             });
+
+                            budgetSelect.style.borderColor = 'var(--primary-color)';
+                            setTimeout(() => {
+                                budgetSelect.style.borderColor = '';
+                            }, 1000);
                         })
-                        .catch(error => console.error('Помилка:', error));
+                        .catch(error => {
+                            console.error('Помилка:', error);
+                            const loadingElement = document.getElementById('loading-budgets');
+                            if (loadingElement) {
+                                loadingElement.className = 'alert alert-danger';
+                                loadingElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> Помилка завантаження бюджетів';
+                            }
+                        });
+                } else {
+                    const loadingElement = document.getElementById('loading-budgets');
+                    if (loadingElement) loadingElement.remove();
                 }
+            }
+
+            // Зберігаємо вибраний бюджет для використання після оновлення
+            budgetSelect.dataset.selected = budgetSelect.value;
+
+            // Оновлення при зміні регіону
+            regionSelect.addEventListener('change', function() {
+                updateBudgets(this.value);
+            });
+
+            // Оновлення при завантаженні сторінки, якщо регіон уже вибраний
+            if (regionSelect.value) {
+                updateBudgets(regionSelect.value);
+            }
+
+            // Додаємо тултіпи до кнопок
+            const buttons = document.querySelectorAll('button, .btn');
+            buttons.forEach(button => {
+                button.setAttribute('title', button.textContent.trim());
             });
         });
     </script>
 </head>
 <body>
-    <h1>Дохід бюджетів</h1>
-    <div class="form-container">
-        <form method="post">
-            {% csrf_token %}
-            <div>
-                <label for="{{ form.region.id_for_label }}">Регіон:</label>
-                {{ form.region }}
-            </div>
-            <div>
-                <label for="{{ form.budget.id_for_label }}">Бюджет:</label>
-                {{ form.budget }}
-            </div>
-            <div>
-                <label for="{{ form.period.id_for_label }}">Період:</label>
-                {{ form.period }}
-            </div>
-            <div class="button-container">
-                <button type="submit" name="fetch_data">Отримати дані по бюджету</button>
-            </div>
-        </form>
-    </div>
-
-    {% if success_api %}
-        <p class="success">Дані успішно отримані з API.</p>
-    {% endif %}
-    {% if success_db %}
-        <p class="success">Дані успішно збережені в базу даних.</p>
-    {% endif %}
-
-    {% if available_data %}
-        <div class="data-status">
-            <strong>Наявність даних у базі:</strong>
-            <ul>
-                {% for year, months in available_data.items %}
-                    <li>
-                        {{ year }}:
-                        {% if months %}
-                            Дані за місяці: {{ months|join:", " }}
-                            {% if year == current_year and last_year_month < current_month %}
-                                (останні дані за {{ last_year_month }} місяць)
-                            {% endif %}
-                        {% else %}
-                            Дані відсутні
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-chart-line"></i> Дохід бюджетів</h1>
         </div>
-        {% if show_load_button %}
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="region" value="{{ form.region.value }}">
-                <input type="hidden" name="budget" value="{{ form.budget.value }}">
-                <input type="hidden" name="period" value="{{ form.period.value }}">
-                <div class="missing-data">
-                    {% if missing_years %}
-                        Відсутні дані за роки: {{ missing_years|join:", " }}.
-                    {% endif %}
-                    {% if last_year_month and last_year_month < current_month %}
-                        Відсутні дані за місяці {{ last_year_month|add:1 }}–{{ current_month }} для {{ current_year }}.
-                    {% endif %}
-                    <button type="submit" name="load_missing" value="true">Завантажити відсутні дані</button>
-                </div>
-            </form>
-        {% endif %}
-    {% endif %}
+    </header>
 
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                Параметри пошуку
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% load widget_tweaks %}
+                    <div class="form-group">
+                        <label for="{{ form.region.id_for_label }}">
+                            <i class="fas fa-map-marker-alt"></i> Регіон:
+                        </label>
+                        {{ form.region|add_class:"form-control" }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.budget.id_for_label }}">
+                            <i class="fas fa-building"></i> Бюджет:
+                        </label>
+                        {{ form.budget|add_class:"form-control" }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.period.id_for_label }}">
+                            <i class="fas fa-calendar-alt"></i> Період:
+                        </label>
+                        {{ form.period|add_class:"form-control" }}
+                    </div>
+                    <div>
+                        <button type="submit" name="fetch_data" class="btn">
+                            <i class="fas fa-search"></i> Отримати дані по бюджету
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
 
-    {% if results %}
-        {% if form.budget.value %}
-            <div class="forecast-button">
-                <a href="{% url 'forecast' %}?budget_code={{ form.budget.value }}">Перейти до прогнозування</a>
+        {% if success_api %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> Дані успішно отримані з API.
             </div>
         {% endif %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Код доходу</th>
-                    <th>Тип фонду</th>
-                    <th>Рік</th>
-                    <th>01</th>
-                    <th>02</th>
-                    <th>03</th>
-                    <th>04</th>
-                    <th>05</th>
-                    <th>06</th>
-                    <th>07</th>
-                    <th>08</th>
-                    <th>09</th>
-                    <th>10</th>
-                    <th>11</th>
-                    <th>12</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in results|dictsort:"year"|dictsort:"cod_inco" %}
-                    <tr>
-                        <td>{{ row.cod_inco }}</td>
-                        <td>
-                            {% if row.fund_typ == 'C' %}Загальний
-                            {% elif row.fund_typ == 'S' %}Спеціальний
-                            {% else %}{{ row.fund_typ }}{% endif %}
-                        </td>
-                        <td>{{ row.year }}</td>
-                        <td class="number">{{ row.01|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.02|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.03|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.04|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.05|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.06|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.07|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.08|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.09|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.10|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.11|floatformat:2|default:"—" }}</td>
-                        <td class="number">{{ row.12|floatformat:2|default:"—" }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+        {% if success_db %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> Дані успішно збережені в базу даних.
+            </div>
+        {% endif %}
+
+        {% if available_data %}
+            <div class="card">
+                <div class="card-header">
+                    Наявність даних у базі
+                </div>
+                <div class="card-body">
+                    <div class="data-status">
+                        <ul>
+                            {% for year, months in available_data.items %}
+                                <li>
+                                    <strong>{{ year }}:</strong>
+                                    {% if months %}
+                                        Дані за місяці: {{ months|join:", " }}
+                                        {% if year == current_year and last_year_month < current_month %}
+                                            <span class="badge badge-success">останні дані за {{ last_year_month }} місяць</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge badge-warning">Дані відсутні</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% if show_load_button %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="region" value="{{ form.region.value }}">
+                            <input type="hidden" name="budget" value="{{ form.budget.value }}">
+                            <input type="hidden" name="period" value="{{ form.period.value }}">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                {% if missing_years %}
+                                    Відсутні дані за роки: {{ missing_years|join:", " }}.
+                                {% endif %}
+                                {% if last_year_month and last_year_month < current_month %}
+                                    Відсутні дані за місяці {{ last_year_month|add:1 }}–{{ current_month }} для {{ current_year }}.
+                                {% endif %}
+                                <button type="submit" name="load_missing" value="true" class="btn btn-warning">
+                                    <i class="fas fa-cloud-download-alt"></i> Завантажити відсутні дані
+                                </button>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+        {% endif %}
+
+        {% if results %}
+            {% if form.budget.value %}
+                <div class="forecast-button">
+                    <a href="{% url 'forecast' %}?budget_code={{ form.budget.value }}" class="btn forecast-link">
+                        <i class="fas fa-chart-pie"></i> Перейти до прогнозування
+                    </a>
+                </div>
+            {% endif %}
+
+            <div class="card">
+                <div class="card-header">
+                    Результати пошуку
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Код доходу</th>
+                                    <th>Тип фонду</th>
+                                    <th>Рік</th>
+                                    <th>01</th>
+                                    <th>02</th>
+                                    <th>03</th>
+                                    <th>04</th>
+                                    <th>05</th>
+                                    <th>06</th>
+                                    <th>07</th>
+                                    <th>08</th>
+                                    <th>09</th>
+                                    <th>10</th>
+                                    <th>11</th>
+                                    <th>12</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in results|dictsort:"year"|dictsort:"cod_inco" %}
+                                    <tr>
+                                        <td>{{ row.cod_inco }}</td>
+                                        <td>
+                                            {% if row.fund_typ == 'C' %}
+                                                <span class="fund-type fund-general">Загальний</span>
+                                            {% elif row.fund_typ == 'S' %}
+                                                <span class="fund-type fund-special">Спеціальний</span>
+                                            {% else %}
+                                                {{ row.fund_typ }}
+                                            {% endif %}
+                                        </td>
+                                        <td class="year-column">{{ row.year }}</td>
+                                        <td class="number">{{ row.01|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.02|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.03|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.04|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.05|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.06|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.07|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.08|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.09|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.10|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.11|floatformat:2|default:"—" }}</td>
+                                        <td class="number">{{ row.12|floatformat:2|default:"—" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'933df5d55b34bd28',t:'MTc0NTI0OTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>

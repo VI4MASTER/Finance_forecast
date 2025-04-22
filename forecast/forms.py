@@ -27,9 +27,3 @@ class BudgetQueryForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['budget'].queryset = Budgets.objects.all().order_by('name_budg')
-        if 'region' in self.data:
-            try:
-                region_id = self.data.get('region')
-                self.fields['budget'].queryset = Budgets.objects.filter(code_region=region_id).order_by('name_budg')
-            except (ValueError, TypeError):
-                pass

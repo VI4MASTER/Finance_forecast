@@ -2,26 +2,481 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Прогнозування доходів</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .budget-info { margin-bottom: 20px; }
-        .budget-info h2 { margin: 0 0 10px; }
-        .budget-info p { margin: 5px 0; }
-        .income-select-container, .forecast-params { margin-bottom: 20px; }
-        .income-select-container label, .forecast-params label { display: inline-block; width: 150px; }
-        .income-select-container select { padding: 5px; width: 500px; }
-        .forecast-params input, .forecast-params select { margin-right: 10px; }
-        .error { color: red; margin-bottom: 10px; }
-        .income-data-table, .forecast-results { margin-top: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .number { text-align: right; }
-        .forecast-button { margin: 10px 0; }
-        .forecast-button button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .forecast-button button:hover { background-color: #0056b3; }
+        :root {
+            --primary-color: #3498db;
+            --primary-dark: #2980b9;
+            --secondary-color: #2ecc71;
+            --secondary-dark: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #9b59b6;
+            --info-dark: #8e44ad;
+            --light-gray: #f5f5f5;
+            --dark-gray: #333;
+            --border-color: #e0e0e0;
+            --shadow: 0 2px 5px rgba(0,0,0,0.1);
+            --radius: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--info-color);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+
+        h1, h2, h3, h4, h5 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        h1 {
+            padding: 0 20px;
+            font-size: 1.8rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s, transform 0.1s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-success:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-info {
+            background-color: var(--info-color);
+        }
+
+        .btn-info:hover {
+            background-color: var(--info-dark);
+        }
+
+        .btn i {
+            margin-right: 5px;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: var(--radius);
+            border-left: 4px solid transparent;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-left-color: var(--danger-color);
+            color: #721c24;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 500px;
+            font-size: 16px;
+            transition: border 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        select.form-control {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233498db'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+            padding-right: 30px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 5px 0 15px;
+        }
+
+        .checkbox-wrapper {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .checkbox-wrapper label {
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 6px 12px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            transition: all 0.2s;
+            font-weight: normal;
+            font-size: 14px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + label {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-dark);
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:focus + label {
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .checkbox-wrapper label:hover {
+            background-color: var(--light-gray);
+        }
+
+        .checkbox-wrapper input[type="checkbox"]:checked + label:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .forecast-params {
+            margin-bottom: 20px;
+        }
+
+        .forecast-params > div {
+            margin-bottom: 15px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 500;
+            color: var(--dark-gray);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background-color: rgba(52, 152, 219, 0.05);
+        }
+
+        .fund-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .fund-general {
+            background-color: #e8f4fd;
+            color: #2980b9;
+        }
+
+        .fund-special {
+            background-color: #e8f8f5;
+            color: #16a085;
+        }
+
+        .number {
+            text-align: right;
+            font-family: 'Consolas', monospace;
+        }
+
+        .method-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .method-tag {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            background-color: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .metrics-panel {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            padding: 8px 15px;
+            background: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 3px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--dark-gray);
+        }
+
+        .forecast-result-container {
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+
+        .forecast-method {
+            background-color: white;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .forecast-method-header {
+            padding: 15px;
+            background-color: #f8f9fa;
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .forecast-method-body {
+            padding: 15px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--primary-color);
+            text-decoration: none;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            color: var(--primary-dark);
+            text-decoration: underline;
+        }
+
+        .back-link i {
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 7px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-info {
+            background-color: #e8f4fd;
+            color: #2980b9;
+        }
+
+        .badge-warning {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: var(--radius);
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #555 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .loader {
+            display: none;
+            margin: 15px auto;
+            text-align: center;
+        }
+
+        .loader-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .metrics-panel {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .metric-item {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .checkbox-group {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .checkbox-wrapper {
+                margin-right: 0;
+            }
+        }
     </style>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -29,7 +484,22 @@
             const tableContainer = document.querySelector('#income_data_table');
             const forecastButton = document.querySelector('#forecast_button');
             const forecastResults = document.querySelector('#forecast_results');
+            const loaderElement = document.querySelector('#loader');
             const budgetCode = new URLSearchParams(window.location.search).get('budget_code');
+
+            // Ініціалізація тултіпів
+            const tooltips = document.querySelectorAll('.tooltip');
+            tooltips.forEach(tooltip => {
+                tooltip.addEventListener('mouseenter', () => {
+                    tooltip.querySelector('.tooltip-text').style.visibility = 'visible';
+                    tooltip.querySelector('.tooltip-text').style.opacity = '1';
+                });
+
+                tooltip.addEventListener('mouseleave', () => {
+                    tooltip.querySelector('.tooltip-text').style.visibility = 'hidden';
+                    tooltip.querySelector('.tooltip-text').style.opacity = '0';
+                });
+            });
 
             incomeSelect.addEventListener('change', function() {
                 const incomeCode = this.value;
@@ -38,43 +508,57 @@
 
                 if (!incomeCode) return;
 
+                loaderElement.style.display = 'block';
+
                 fetch(`/get_income_data/?budget_code=${budgetCode}&income_code=${incomeCode}`)
                     .then(response => response.json())
                     .then(data => {
+                        loaderElement.style.display = 'none';
+
                         if (data.error) {
-                            tableContainer.innerHTML = `<p class="error">${data.error}</p>`;
+                            tableContainer.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
                             return;
                         }
 
-                        let table = `
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Рік</th>
-                                        <th>Тип фонду</th>
-                                        <th>01</th>
-                                        <th>02</th>
-                                        <th>03</th>
-                                        <th>04</th>
-                                        <th>05</th>
-                                        <th>06</th>
-                                        <th>07</th>
-                                        <th>08</th>
-                                        <th>09</th>
-                                        <th>10</th>
-                                        <th>11</th>
-                                        <th>12</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                        let tableHTML = `
+                            <div class="card">
+                                <div class="card-header">
+                                    Історичні дані для коду доходу: ${incomeCode}
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th>Рік</th>
+                                                    <th>Тип фонду</th>
+                                                    <th>01</th>
+                                                    <th>02</th>
+                                                    <th>03</th>
+                                                    <th>04</th>
+                                                    <th>05</th>
+                                                    <th>06</th>
+                                                    <th>07</th>
+                                                    <th>08</th>
+                                                    <th>09</th>
+                                                    <th>10</th>
+                                                    <th>11</th>
+                                                    <th>12</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
                         `;
 
                         data.data.forEach(row => {
-                            const fundType = row.fund_typ === 'C' ? 'Загальний' :
-                                            row.fund_typ === 'S' ? 'Спеціальний' : row.fund_typ;
-                            table += `
+                            const fundType = row.fund_typ === 'C' ?
+                                '<span class="fund-badge fund-general">Загальний</span>' :
+                                row.fund_typ === 'S' ?
+                                '<span class="fund-badge fund-special">Спеціальний</span>' :
+                                row.fund_typ;
+
+                            tableHTML += `
                                 <tr>
-                                    <td>${row.year}</td>
+                                    <td><strong>${row.year}</strong></td>
                                     <td>${fundType}</td>
                                     <td class="number">${formatNumber(row['01'])}</td>
                                     <td class="number">${formatNumber(row['02'])}</td>
@@ -92,12 +576,19 @@
                             `;
                         });
 
-                        table += '</tbody></table>';
-                        tableContainer.innerHTML = table;
+                        tableHTML += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        tableContainer.innerHTML = tableHTML;
                     })
                     .catch(error => {
                         console.error('Помилка:', error);
-                        tableContainer.innerHTML = '<p class="error">Помилка завантаження даних</p>';
+                        loaderElement.style.display = 'none';
+                        tableContainer.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Помилка завантаження даних</div>';
                     });
             });
 
@@ -109,9 +600,12 @@
                 const testMode = document.querySelector('#test_mode').checked;
 
                 if (!incomeCode || selectedYears.length === 0) {
-                    forecastResults.innerHTML = '<p class="error">Оберіть код доходу та принаймні один рік</p>';
+                    forecastResults.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Оберіть код доходу та принаймні один рік</div>';
                     return;
                 }
+
+                loaderElement.style.display = 'block';
+                forecastResults.innerHTML = '';
 
                 const params = new URLSearchParams();
                 params.append('budget_code', budgetCode);
@@ -123,51 +617,120 @@
                 fetch(`/get_forecast_data/?${params.toString()}`)
                     .then(response => response.json())
                     .then(data => {
+                        loaderElement.style.display = 'none';
+
                         if (data.error) {
-                            forecastResults.innerHTML = `<p class="error">${data.error}</p>`;
+                            forecastResults.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> ${data.error}</div>`;
                             return;
                         }
 
-                        let html = '<h3>Результати прогнозування</h3>';
+                        let resultsHTML = `
+                            <div class="forecast-result-container">
+                                <h3><i class="fas fa-chart-line"></i> Результати прогнозування</h3>
+                        `;
+
                         for (const [fund_typ, fund_results] of Object.entries(data.results)) {
-                            const fundTypeName = fund_typ === 'C' ? 'Загальний' : fund_typ === 'S' ? 'Спеціальний' : fund_typ;
-                            html += `<h4>Тип фонду: ${fundTypeName}</h4>`;
+                            const fundTypeName = fund_typ === 'C' ? 'Загальний' :
+                                               fund_typ === 'S' ? 'Спеціальний' : fund_typ;
+
+                            resultsHTML += `
+                                <div class="card">
+                                    <div class="card-header">
+                                        <span class="fund-badge ${fund_typ === 'C' ? 'fund-general' : 'fund-special'}">
+                                            ${fundTypeName} фонд
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                            `;
+
                             for (const [method, result] of Object.entries(fund_results)) {
-                                html += `<h5>${method.toUpperCase()}</h5>`;
-                                if (result.metrics) {
-                                    html += `
-                                        <p>Метрики (2024):
-                                            MAE: ${formatNumber(result.metrics.MAE)},
-                                            RMSE: ${formatNumber(result.metrics.RMSE)},
-                                            MAPE: ${formatNumber(result.metrics.MAPE)}%
-                                        </p>`;
-                                }
-                                html += `
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Період</th>
-                                                <th>Прогноз (грн)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
+                                const methodIcon = method === 'arima' ? 'fa-chart-line' :
+                                                 method === 'sarimax' ? 'fa-chart-bar' :
+                                                 method === 'prophet' ? 'fa-fire' : 'fa-chart-pie';
+
+                                resultsHTML += `
+                                    <div class="forecast-method">
+                                        <div class="forecast-method-header">
+                                            <div class="method-title">
+                                                <i class="fas ${methodIcon}"></i>
+                                                <span class="method-tag">${method.toUpperCase()}</span>
+                                                <span>Метод прогнозування</span>
+
+                                                <div class="tooltip" style="margin-left: auto;">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    <span class="tooltip-text">
+                                                        ${getMethodDescription(method)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="forecast-method-body">
                                 `;
+
+                                if (result.metrics) {
+                                    resultsHTML += `
+                                        <div class="metrics-panel">
+                                            <div class="metric-item">
+                                                <span class="metric-label">MAE (середня абсолютна помилка)</span>
+                                                <span class="metric-value">${formatNumber(result.metrics.MAE)}</span>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span class="metric-label">RMSE (середньоквадратична помилка)</span>
+                                                <span class="metric-value">${formatNumber(result.metrics.RMSE)}</span>
+                                            </div>
+                                            <div class="metric-item">
+                                                <span class="metric-label">MAPE (середня абсолютна відсоткова помилка)</span>
+                                                <span class="metric-value">${formatNumber(result.metrics.MAPE)}%</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+
+                                resultsHTML += `
+                                            <div class="table-responsive">
+                                                <table>
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Період</th>
+                                                            <th>Прогноз (грн)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                    `;
+
                                 result.forecast.forEach(row => {
-                                    html += `
+                                    resultsHTML += `
                                         <tr>
                                             <td>${row.date}</td>
                                             <td class="number">${formatNumber(row.forecast)}</td>
                                         </tr>
                                     `;
                                 });
-                                html += '</tbody></table>';
+
+                                resultsHTML += `
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
                             }
+
+                            resultsHTML += `
+                                    </div>
+                                </div>
+                            `;
                         }
-                        forecastResults.innerHTML = html;
+
+                        resultsHTML += `</div>`;
+                        forecastResults.innerHTML = resultsHTML;
+
+                        forecastResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     })
                     .catch(error => {
                         console.error('Помилка:', error);
-                        forecastResults.innerHTML = '<p class="error">Помилка прогнозування</p>';
+                        loaderElement.style.display = 'none';
+                        forecastResults.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Помилка прогнозування</div>';
                     });
             });
 
@@ -180,70 +743,136 @@
                     maximumFractionDigits: 2
                 });
             }
+
+            function getMethodDescription(method) {
+                const descriptions = {
+                    'arima': 'Авторегресійна інтегрована модель ковзного середнього для часових рядів.',
+                    'sarimax': 'Сезонна авторегресійна інтегрована модель ковзного середнього з екзогенними змінними.',
+                    'prophet': 'Адитивна регресійна модель від Facebook для прогнозування часових рядів.',
+                    'exponential': 'Метод експоненціального згладжування для виявлення тренду та сезонності.'
+                };
+
+                return descriptions[method] || `Метод прогнозування ${method}`;
+            }
         });
     </script>
 </head>
 <body>
-    <h1>Прогнозування доходів</h1>
-
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% else %}
-        <div class="budget-info">
-            <h2>Бюджет: {{ budget.name_budg }} (Код: {{ budget.code_budg }})</h2>
-            <p><strong>Період наявних даних:</strong></p>
-            <ul>
-                {% for year, months in available_data.items %}
-                    <li>
-                        {{ year }}:
-                        {% if months %}
-                            місяці {{ months|join:", " }}
-                            {% if year == current_year and last_year_month < current_month %}
-                                (останні дані за {{ last_year_month }} місяць)
-                            {% endif %}
-                        {% else %}
-                            дані відсутні
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-chart-pie"></i> Прогнозування доходів</h1>
         </div>
+    </header>
 
-        <div class="income-select-container">
-            <label for="income_code">Код доходу:</label>
-            <select id="income_code" name="income_code">
-                <option value="">Оберіть код доходу</option>
-                {% for income in incomes %}
-                    <option value="{{ income.kdb_code }}">{{ income.kdb_code }} - {{ income.kdb_name }}</option>
-                {% endfor %}
-            </select>
+    <div class="container">
+        {% if error %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{ error }}
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-header">
+                    Інформація про бюджет
+                </div>
+                <div class="card-body">
+                    <h2>{{ budget.name_budg }} <span class="badge badge-info">Код: {{ budget.code_budg }}</span></h2>
+                    <p><strong>Період наявних даних:</strong></p>
+                    <ul>
+                        {% for year, months in available_data.items %}
+                            <li>
+                                <strong>{{ year }}:</strong>
+                                {% if months %}
+                                    місяці {{ months|join:", " }}
+                                    {% if year == current_year and last_year_month < current_month %}
+                                        <span class="badge badge-info">останні дані за {{ last_year_month }} місяць</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge badge-warning">дані відсутні</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    Параметри прогнозування
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="income_code">
+                            <i class="fas fa-tag"></i> Код доходу:
+                        </label>
+                        <select id="income_code" name="income_code" class="form-control">
+                            <option value="">Оберіть код доходу</option>
+                            {% for income in incomes %}
+                                <option value="{{ income.kdb_code }}">{{ income.kdb_code }} - {{ income.kdb_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="forecast-params">
+                        <div>
+                            <label><i class="fas fa-history"></i> Роки для навчання:</label>
+                            <div class="checkbox-group">
+                                {% for year in years %}
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="year-{{ year }}" name="years" value="{{ year }}" {% if year != 2025 %}checked{% endif %}>
+                                        <label for="year-{{ year }}">{{ year }}</label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div>
+                            <label for="forecast_periods">
+                                <i class="fas fa-calendar-alt"></i> Період прогнозу (місяці):
+                            </label>
+                            <select id="forecast_periods" class="form-control" style="max-width: 100px;">
+                                {% for i in "x"|rjust:"12" %}
+                                    <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="test_mode" name="test_mode">
+                                <label for="test_mode">
+                                    <i class="fas fa-vial"></i> Тестовий режим: використати 2024 для оцінки точності
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button id="forecast_button" class="btn">
+                            <i class="fas fa-play"></i> Запустити прогноз
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="income_data_table"></div>
+
+            <div id="loader" class="loader">
+                <div class="loader-spinner"></div>
+            </div>
+
+            <div id="forecast_results"></div>
+
+            <a href="{% url 'budget_incomes' %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Повернутися до списку бюджетів
+            </a>
+        {% endif %}
+    </div>
+
+    <footer>
+        <div class="container">
+            <p style="text-align: center; color: #777; margin-top: 20px;">
+                © 2025 Прогнозування доходів. Усі права захищені.
+            </p>
         </div>
-
-        <div class="forecast-params">
-            <label>Роки для навчання:</label>
-            {% for year in years %}
-                <input type="checkbox" name="years" value="{{ year }}" {% if year != 2025 %}checked{% endif %}> {{ year }}
-            {% endfor %}
-            <br>
-            <label>Період прогнозу (місяці):</label>
-            <select id="forecast_periods">
-                {% for i in "x"|rjust:"12" %}
-                    <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
-                {% endfor %}
-            </select>
-            <br>
-            <label>Тестовий режим:</label>
-            <input type="checkbox" id="test_mode" name="test_mode"> Використати 2024 для оцінки точності
-        </div>
-
-        <div class="forecast-button">
-            <button id="forecast_button">Запустити прогноз</button>
-        </div>
-
-        <div id="income_data_table" class="income-data-table"></div>
-        <div id="forecast_results" class="forecast-results"></div>
-    {% endif %}
-
-    <p><a href="{% url 'budget_incomes' %}">Повернутися до доходів бюджетів</a></p>
+    </footer>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'933df5d85e50804f',t:'MTc0NTI0OTgyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
 </body>
 </html>
