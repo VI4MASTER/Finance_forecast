@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from .forms import BudgetQueryForm
-from .api import fetch_budget_incomes_data
+from .api import fetch_budget_incomes_data, sync_fetch_budget_incomes_data
 from .models import Budgets, IncomeHistory, Incomes
 from .forecasting import prophet_forecast, sarima_forecast, gradient_boosting_forecast, prepare_data
 import pandas as pd
@@ -66,7 +66,7 @@ def budget_incomes_view(request):
                 if last_year_month and last_year_month < datetime.now().month and current_year not in years_to_fetch:
                     years_to_fetch.append(current_year)
 
-                api_results = fetch_budget_incomes_data(
+                api_results = sync_fetch_budget_incomes_data(
                     budget_code=budget_code,
                     years=years_to_fetch,
                     period=period
